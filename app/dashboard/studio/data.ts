@@ -1,5 +1,6 @@
-// AG Studio's data sources for the dashboard: a table for each row type in lib/dashboard-data.ts,
-// the relationships between them, a shared calendar and a few calculated measures.
+// AG Studio's data sources for Tether: one source per table in lib/tether-data.ts,
+// relationships joined on order_id, a shared calendar over event dates, and expressions
+// for verification rate, open drift count, and average seconds-to-fixed.
 
 import type {
   AgDataSourcesDefinition,
@@ -8,19 +9,20 @@ import type {
   AgFormat,
   AgRelationDefinition,
 } from 'ag-studio';
-import type { DashboardData } from '@/lib/dashboard-data';
-
-// --- Helpers ----------------------------------------------------------------------
+import type { TetherData } from '@/lib/tether-data';
 
 const CALENDAR_ID = 'calendar';
 
-// [id, name, format, hide?]
 type FieldSpec = [id: string, name: string, format: AgFormat, hide?: boolean];
 
 const fields = (specs: FieldSpec[]): AgFieldDefinition[] =>
-  specs.map(([id, name, format, hide]) => ({ id, name, format, ...(hide && { hide }) }));
+  specs.map(([id, name, format, hide]) => ({
+    id,
+    name,
+    format,
+    ...(hide && { hide }),
+  }));
 
-// Foreign key 'table.field' -> primary key 'table.field'.
 const manyToOne = (id: string, source: string, target: string): AgRelationDefinition => {
   const [sourceTable, sourceField] = source.split('.');
   const [targetTable, targetField] = target.split('.');
@@ -32,209 +34,180 @@ const manyToOne = (id: string, source: string, target: string): AgRelationDefini
   };
 };
 
-const onCalendar = (tableId: string, fieldId: string, truncate?: 'day'): AgRelationDefinition => ({
+const onCalendar = (tableId: string, fieldId: string): AgRelationDefinition => ({
   id: `${tableId}-${fieldId}-calendar`,
   source: { tableId, fieldId },
   target: { calendarId: CALENDAR_ID },
-  ...(truncate && { truncate }),
 });
 
 const sumOf = (id: string) => ({ id, aggregation: 'sum' as const });
+const avgOf = (id: string) => ({ id, aggregation: 'avg' as const });
 
-const ratio = (id: string, name: string, description: string, numerator: string, denominator: string): AgExpressionFieldDefinition => ({
-  id,
-  name,
-  description,
-  format: 'percentageFormat',
-  isMeasure: true,
-  expression: { operator: 'divide', inputs: [sumOf(numerator), sumOf(denominator)] },
-});
+export const hasData = (_data: TetherData) => true;
 
-// --- Data sources -----------------------------------------------------------------
-
-
-// Whether the PayPal account has anything to report on. Without it, Studio would only show empty widgets.
-export const hasData = (data: DashboardData) =>
-  [data.invoices, data.transactions, data.products, data.plans, data.balances].some((rows) => rows.length > 0);
-
-export function buildStudioData(data: DashboardData): AgDataSourcesDefinition {
+export function buildStudioData(data: TetherData): AgDataSourcesDefinition {
   const dates = [
-    ...data.invoices.map((r) => r.invoiceDate),
-    ...data.invoicePayments.map((r) => r.date),
-    ...data.transactions.map((r) => r.date?.slice(0, 10)),
+    ...data.webhook_events.map((r) => r.event_date),
+    ...data.local_orders.map((r) => r.order_date),
+    ...data.heal_log.map((r) => r.heal_date),
+    ...data.agent_runs.map((r) => r.run_date),
+    ...data.drift.map((r) => r.event_date),
   ]
-    .filter((d): d is string => !!d)
+    .filter((d): d is string => Boolean(d))
     .sort();
+
   const today = data.asOf.slice(0, 10);
+
+  const expressions: AgExpressionFieldDefinition[] = [
+    {
+      id: 'verificationRate',
+      name: 'Verification Rate',
+      description:
+        'Share of received PayPal webhook events that passed cryptographic signature verification (verified / total events).',
+      format: 'percentageFormat',
+      isMeasure: true,
+      expression: {
+        operator: 'divide',
+        inputs: [sumOf('webhook_events.verified_count'), sumOf('webhook_events.event_count')],
+      },
+    },
+    {
+      id: 'openDriftCount',
+      name: 'Open Drift Count',
+      description:
+        'Number of orders that are COMPLETED in PayPal sandbox but still unpaid (CREATED) in local_orders.',
+      format: 'integerFormat',
+      isMeasure: true,
+      expression: sumOf('local_orders.open_drift'),
+    },
+    {
+      id: 'avgSecondsToFixed',
+      name: 'Average Seconds to Fixed',
+      description:
+        'Average time in seconds from triggering a guarded PayPal webhook resend until the verified webhook flips local_status to PAID.',
+      format: 'decimalFormat',
+      isMeasure: true,
+      expression: avgOf('heal_log.seconds_to_fixed'),
+    },
+  ];
 
   return {
     description:
-      'PayPal sandbox data fetched over the REST API for a merchant that sells subscription products and sends invoices. ' +
-      'Invoices are in USD, EUR or GBP and are not converted, so filter by currency before summing money. ' +
-      'Invoice payments are recorded externally (bank transfer, card, check, cash). The ledger holds payouts to affiliates, creators and customers.',
+      'Tether payment-event doctor data model. Combines incoming PayPal webhook receipts (with signature verification status), local order state, guarded webhook resend audit logs (heal_log), Gemini diagnostic agent runs (agent_runs), and live PayPal order drift items joined on order_id.',
     sources: [
       {
-        id: 'customers',
-        description: 'Invoice recipients, keyed by lower-cased email.',
-        data: data.customers,
-        fields: fields([
-          ['id', 'Customer ID', 'textFormat', true],
-          ['name', 'Customer', 'textFormat'],
-          ['company', 'Company', 'textFormat'],
-          ['email', 'Email', 'textFormat'],
-        ]),
-      },
-      {
-        id: 'invoices',
+        id: 'webhook_events',
+        name: 'Webhook Events',
         description:
-          'One row per invoice. Issued amount excludes drafts, scheduled and cancelled invoices. Outstanding and aging apply only to open or partially paid invoices.',
-        data: data.invoices,
+          'Every PayPal webhook received by /api/webhook, with PayPal cryptographic signature verification status and derived event date.',
+        data: data.webhook_events,
         fields: fields([
-          ['id', 'Invoice ID', 'textFormat', true],
-          ['number', 'Invoice', 'textFormat'],
-          ['customerId', 'Customer ID', 'textFormat', true],
-          ['status', 'Invoice Status', 'textFormat'],
-          ['statusGroup', 'Status Group', 'textFormat'],
+          ['id', 'Event ID', 'textFormat'],
+          ['event_type', 'Event Type', 'textFormat'],
+          ['resource_id', 'Resource ID', 'textFormat'],
+          ['order_id', 'Order ID', 'textFormat'],
+          ['verification_status', 'Verification Status', 'textFormat'],
+          ['verified', 'Verified', 'booleanFormat'],
+          ['verified_count', 'Verified Events', 'integerFormat', true],
+          ['event_count', 'Events Received', 'integerFormat'],
+          ['received_at', 'Received At', 'dateTimeFormat'],
+          ['event_date', 'Event Date', 'dateFormat'],
+        ]),
+      },
+      {
+        id: 'local_orders',
+        name: 'Local Orders',
+        description:
+          'Merchant local order table. Orders start in CREATED and only transition to PAID when a verified PAYMENT.CAPTURE.COMPLETED webhook is processed.',
+        data: data.local_orders,
+        fields: fields([
+          ['order_id', 'Order ID', 'textFormat'],
+          ['local_status', 'Local Status', 'textFormat'],
+          ['amount', 'Order Amount', 'currencyFormat'],
           ['currency', 'Currency', 'textFormat'],
-          ['paymentTerm', 'Payment Term', 'textFormat'],
-          ['invoiceDate', 'Invoice Date', 'dateFormat'],
-          ['dueDate', 'Due Date', 'dateFormat'],
-          ['total', 'Invoice Total', 'currencyFormat'],
-          ['issuedAmount', 'Invoiced', 'currencyFormat'],
-          ['paidAmount', 'Paid', 'currencyFormat'],
-          ['refundedAmount', 'Refunded', 'currencyFormat'],
-          ['netCollected', 'Net Collected', 'currencyFormat'],
-          ['isReceivable', 'Is Receivable', 'booleanFormat'],
-          ['outstanding', 'Outstanding', 'currencyFormat'],
-          ['overdueAmount', 'Overdue', 'currencyFormat'],
-          ['daysOverdue', 'Days Overdue', 'integerFormat'],
-          ['agingBucket', 'Aging Bucket', 'textFormat'],
-          ['daysToPay', 'Days to Pay', 'integerFormat'],
-          ['taxTotal', 'Tax', 'currencyFormat'],
+          ['is_paid', 'Is Paid', 'booleanFormat'],
+          ['is_drifting', 'Has Open Drift', 'booleanFormat'],
+          ['open_drift', 'Open Drift', 'integerFormat', true],
+          ['created_at', 'Created At', 'dateTimeFormat'],
+          ['updated_at', 'Updated At', 'dateTimeFormat'],
+          ['order_date', 'Order Date', 'dateFormat'],
         ]),
       },
       {
-        id: 'invoiceItems',
-        name: 'Invoice Line Items',
-        description: 'Invoice lines. Line total is after line discount and tax, before invoice-level discount and shipping.',
-        data: data.invoiceItems,
+        id: 'heal_log',
+        name: 'Heal Log',
+        description:
+          'Audit trail of guarded webhook heal attempts (POST /api/heal and POST /api/agent/approve), recording preconditions, action taken, result, and seconds-to-fixed.',
+        data: data.heal_log,
         fields: fields([
-          ['id', 'Line ID', 'textFormat', true],
-          ['invoiceId', 'Invoice ID', 'textFormat', true],
-          ['name', 'Item', 'textFormat'],
-          ['unit', 'Unit', 'textFormat'],
-          ['quantity', 'Quantity', 'decimalFormat'],
-          ['unitPrice', 'Unit Price', 'currencyFormat'],
-          ['gross', 'Gross', 'currencyFormat'],
-          ['discount', 'Line Discount', 'currencyFormat'],
-          ['tax', 'Line Tax', 'currencyFormat'],
-          ['lineTotal', 'Line Total', 'currencyFormat'],
+          ['id', 'Heal ID', 'integerFormat'],
+          ['order_id', 'Order ID', 'textFormat'],
+          ['event_id', 'Webhook Event ID', 'textFormat'],
+          ['action', 'Action', 'textFormat'],
+          ['result', 'Result', 'textFormat'],
+          ['healed', 'Healed', 'booleanFormat'],
+          ['seconds_to_fixed', 'Seconds to Fixed', 'decimalFormat'],
+          ['reason', 'Reason', 'textFormat'],
+          ['started_at', 'Started At', 'dateTimeFormat'],
+          ['finished_at', 'Finished At', 'dateTimeFormat'],
+          ['heal_date', 'Heal Date', 'dateFormat'],
         ]),
       },
       {
-        id: 'invoicePayments',
-        name: 'Invoice Payments',
-        description: 'Payments and refunds recorded against invoices. Signed amount is negative for refunds; sum it for net cash.',
-        data: data.invoicePayments,
+        id: 'agent_runs',
+        name: 'Agent Runs',
+        description:
+          'Diagnostic investigations executed by the Tether Doctor Agent over Gemini tool calls, recording root cause, model used, confidence, and server-verified safe_to_heal.',
+        data: data.agent_runs,
         fields: fields([
-          ['id', 'Payment ID', 'textFormat', true],
-          ['invoiceId', 'Invoice ID', 'textFormat', true],
-          ['kind', 'Payment Kind', 'textFormat'],
-          ['method', 'Payment Method', 'textFormat'],
-          ['date', 'Payment Date', 'dateFormat'],
-          ['amount', 'Payment Amount', 'currencyFormat'],
-          ['signedAmount', 'Net Cash', 'currencyFormat'],
+          ['id', 'Run ID', 'integerFormat'],
+          ['order_id', 'Order ID', 'textFormat'],
+          ['root_cause', 'Root Cause', 'textFormat'],
+          ['model_used', 'Model Used', 'textFormat'],
+          ['confidence', 'Confidence', 'textFormat'],
+          ['safe_to_heal', 'Safe to Heal', 'booleanFormat'],
+          ['summary', 'Summary', 'textFormat'],
+          ['recommended_action', 'Recommended Action', 'textFormat'],
+          ['step_count', 'Tool Steps', 'integerFormat'],
+          ['evidence_count', 'Evidence Count', 'integerFormat'],
+          ['created_at', 'Created At', 'dateTimeFormat'],
+          ['run_date', 'Run Date', 'dateFormat'],
         ]),
       },
       {
-        id: 'products',
-        description: 'Catalog products sold as subscriptions.',
-        data: data.products,
+        id: 'drift',
+        name: 'Open Drift',
+        description:
+          'Live read-only drift items where PayPal order status is COMPLETED in sandbox while local_orders.local_status is still CREATED.',
+        data: data.drift,
         fields: fields([
-          ['id', 'Product ID', 'textFormat', true],
-          ['name', 'Product', 'textFormat'],
-          ['type', 'Product Type', 'textFormat'],
-          ['category', 'Product Category', 'textFormat'],
-          ['description', 'Product Description', 'textFormat'],
-        ]),
-      },
-      {
-        id: 'plans',
-        name: 'Billing Plans',
-        description: 'Subscription billing plans, in USD. Monthly price normalises weekly, quarterly and annual pricing to one month.',
-        data: data.plans,
-        fields: fields([
-          ['id', 'Plan ID', 'textFormat', true],
-          ['productId', 'Product ID', 'textFormat', true],
-          ['name', 'Plan', 'textFormat'],
-          ['status', 'Plan Status', 'textFormat'],
-          ['billingInterval', 'Billed', 'textFormat'],
-          ['price', 'Price', 'currencyFormat'],
-          ['monthlyPrice', 'Monthly Price', 'currencyFormat'],
-          ['trialDays', 'Trial Days', 'integerFormat'],
-          ['setupFee', 'Setup Fee', 'currencyFormat'],
-        ]),
-      },
-      {
-        id: 'transactions',
-        description: 'Account ledger from Transaction Search, last 31 days. Amounts are signed (debits negative); net is amount plus fee.',
-        data: data.transactions,
-        fields: fields([
-          ['id', 'Transaction ID', 'textFormat'],
-          ['date', 'Transaction Date', 'dateTimeFormat'],
-          ['eventType', 'Event Type', 'textFormat'],
-          ['status', 'Transaction Status', 'textFormat'],
-          ['direction', 'Direction', 'textFormat'],
-          ['currency', 'Transaction Currency', 'textFormat', true],
-          ['amount', 'Transaction Amount', 'currencyFormat'],
-          ['fee', 'Transaction Fee', 'currencyFormat'],
-          ['net', 'Transaction Net', 'currencyFormat'],
-          ['endingBalance', 'Ending Balance', 'currencyFormat'],
-          ['counterparty', 'Counterparty', 'textFormat'],
-          ['note', 'Transaction Note', 'textFormat'],
-        ]),
-      },
-      {
-        id: 'payouts',
-        description: 'Individual payouts sent from the account, as positive USD amounts, grouped into campaigns.',
-        data: data.payouts,
-        fields: fields([
-          ['id', 'Payout ID', 'textFormat', true],
-          ['campaign', 'Campaign', 'textFormat'],
-          ['recipient', 'Recipient', 'textFormat'],
-          ['date', 'Payout Date', 'dateTimeFormat'],
-          ['status', 'Payout Status', 'textFormat'],
-          ['amount', 'Payout Amount', 'currencyFormat'],
-          ['fee', 'Payout Fee', 'currencyFormat'],
-          ['note', 'Payout Note', 'textFormat'],
-        ]),
-      },
-      {
-        id: 'balances',
-        description: 'Current account balance per currency.',
-        data: data.balances,
-        fields: fields([
-          ['currency', 'Balance Currency', 'textFormat'],
-          ['total', 'Total Balance', 'currencyFormat'],
-          ['available', 'Available Balance', 'currencyFormat'],
-          ['withheld', 'Withheld Balance', 'currencyFormat'],
+          ['order_id', 'Order ID', 'textFormat'],
+          ['paypal_status', 'PayPal Status', 'textFormat'],
+          ['local_status', 'Local Status', 'textFormat'],
+          ['amount', 'Drift Amount', 'currencyFormat'],
+          ['currency', 'Currency', 'textFormat'],
+          ['capture_id', 'Capture ID', 'textFormat'],
+          ['has_webhook_in_log', 'Webhook in Local Log', 'booleanFormat'],
+          ['drift_count', 'Drift Items', 'integerFormat'],
+          ['event_date', 'Order Date', 'dateFormat'],
         ]),
       },
     ],
     relationships: [
-      manyToOne('invoice-customer', 'invoices.customerId', 'customers.id'),
-      manyToOne('item-invoice', 'invoiceItems.invoiceId', 'invoices.id'),
-      manyToOne('payment-invoice', 'invoicePayments.invoiceId', 'invoices.id'),
-      manyToOne('plan-product', 'plans.productId', 'products.id'),
-      onCalendar('invoices', 'invoiceDate'),
-      onCalendar('invoicePayments', 'date'),
-      onCalendar('transactions', 'date', 'day'),
-      onCalendar('payouts', 'date', 'day'),
+      manyToOne('webhook-events-order', 'webhook_events.order_id', 'local_orders.order_id'),
+      manyToOne('heal-log-order', 'heal_log.order_id', 'local_orders.order_id'),
+      manyToOne('agent-runs-order', 'agent_runs.order_id', 'local_orders.order_id'),
+      manyToOne('drift-order', 'drift.order_id', 'local_orders.order_id'),
+      onCalendar('webhook_events', 'event_date'),
+      onCalendar('local_orders', 'order_date'),
+      onCalendar('heal_log', 'heal_date'),
+      onCalendar('agent_runs', 'run_date'),
+      onCalendar('drift', 'event_date'),
     ],
     calendars: [
       {
         id: CALENDAR_ID,
-        label: 'Calendar',
+        label: 'Event Calendar',
         range: {
           from: { type: 'date', value: dates[0] ?? today },
           to: { type: 'date', value: dates.at(-1) ?? today },
@@ -242,10 +215,6 @@ export function buildStudioData(data: DashboardData): AgDataSourcesDefinition {
         fragments: ['year', 'quarter', 'month', 'week', 'day', 'dayOfWeek'],
       },
     ],
-    expressions: [
-      ratio('collectionRate', 'Collection Rate', 'Paid / invoiced. Filter to one currency first.', 'invoices.paidAmount', 'invoices.issuedAmount'),
-      ratio('overdueShare', 'Overdue Share', 'Share of outstanding receivables that is past due.', 'invoices.overdueAmount', 'invoices.outstanding'),
-      ratio('refundRate', 'Refund Rate', 'Refunded / paid.', 'invoices.refundedAmount', 'invoices.paidAmount'),
-    ],
+    expressions,
   };
 }
