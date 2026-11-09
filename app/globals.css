@@ -1,63 +1,135 @@
 @import "tailwindcss";
 
+/*
+ * Tether design tokens (DESIGN.md): single source of truth for the dashboard shell,
+ * Doctor & Demo Controls panels, and AG Studio theme (app/dashboard/studio/theme.ts).
+ * Restyling later is a one-file change here.
+ */
+:root {
+  --primary: #0070E0;
+  --on-primary: #FFFFFF;
+  --primary-active: #003087;
+  --primary-light: #66B2FF;
+  --primary-neutral: #B9D6F7;
+  --primary-pale: #E3EFFC;
+  --ink: #0B1426;
+  --ink-deep: #003087;
+  --body: #454B55;
+  --mute: #6B7380;
+  --canvas: #FFFFFF;
+  --canvas-soft: #E9EEF5;
+  --positive: #2EAD4B;
+  --positive-deep: #054D28;
+  --positive-bg: #E3F6E8;
+  --warning: #FFD11A;
+  --warning-deep: #B86700;
+  --warning-content: #4A3B1C;
+  --warning-bg: #FFF6CC;
+  --negative: #D03238;
+  --negative-deep: #A72027;
+  --negative-bg: #320707;
+
+  /* Chart series: blue family first, peach only for contrasting 5th series */
+  --chart-1: #0070E0;
+  --chart-2: #003087;
+  --chart-3: #009CDE;
+  --chart-4: #8FB8E8;
+  --chart-5: #FFC091;
+
+  /* Font stacks loaded via next/font/google in app/layout.tsx */
+  --font-display-stack: var(--font-manrope), var(--font-inter), system-ui, sans-serif;
+  --font-sans-stack: var(--font-inter), system-ui, sans-serif;
+
+  /* Legacy aliases mapped to Tether tokens */
+  --pp-navy: var(--ink-deep);
+  --pp-blue: var(--primary);
+  --pp-blue-dark: var(--primary-active);
+  --pp-sky: var(--chart-3);
+  --pp-highlight: var(--primary-pale);
+  --pp-canvas: var(--canvas-soft);
+  --pp-surface: var(--canvas);
+  --pp-border: var(--canvas-soft);
+  --pp-gridline: var(--canvas-soft);
+  --pp-ink: var(--ink);
+  --pp-muted: var(--mute);
+  --pp-success: var(--positive);
+  --pp-warning: var(--warning-deep);
+  --pp-danger: var(--negative);
+  --pp-font: var(--font-sans-stack);
+}
+
 @theme inline {
-  --font-mono: var(--font-geist-mono);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-active: var(--primary-active);
+  --color-primary-light: var(--primary-light);
+  --color-primary-neutral: var(--primary-neutral);
+  --color-primary-pale: var(--primary-pale);
+  --color-ink: var(--ink);
+  --color-ink-deep: var(--ink-deep);
+  --color-body: var(--body);
+  --color-mute: var(--mute);
+  --color-canvas: var(--canvas);
+  --color-canvas-soft: var(--canvas-soft);
+  --color-positive: var(--positive);
+  --color-positive-deep: var(--positive-deep);
+  --color-positive-bg: var(--positive-bg);
+  --color-warning: var(--warning);
+  --color-warning-deep: var(--warning-deep);
+  --color-warning-content: var(--warning-content);
+  --color-warning-bg: var(--warning-bg);
+  --color-negative: var(--negative);
+  --color-negative-deep: var(--negative-deep);
+  --color-negative-bg: var(--negative-bg);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-pp-navy: var(--ink-deep);
+  --color-pp-blue: var(--primary);
+  --color-pp-blue-dark: var(--primary-active);
+  --color-pp-sky: var(--chart-3);
+  --color-pp-highlight: var(--primary-pale);
+  --color-pp-canvas: var(--canvas-soft);
+  --color-pp-surface: var(--canvas);
+  --color-pp-border: var(--canvas-soft);
+  --color-pp-ink: var(--ink);
+  --color-pp-muted: var(--mute);
+  --color-pp-success: var(--positive);
+  --color-pp-warning: var(--warning-deep);
+  --color-pp-danger: var(--negative);
+
+  --font-display: var(--font-display-stack);
+  --font-sans: var(--font-sans-stack);
+  --font-paypal: var(--font-sans-stack);
 }
 
 body {
-  background: var(--pp-canvas);
-  color: var(--pp-ink);
-  font-family: var(--pp-font);
+  background: var(--canvas-soft);
+  color: var(--ink);
+  font-family: var(--font-sans-stack);
 }
 
-/*
- * PayPal design tokens: the single source of truth for the dashboard shell (through the
- * Tailwind colours below, e.g. bg-pp-blue), for AG Studio (app/dashboard/studio/theme.ts)
- * and for AG Grid (app/(endpoints)/data-grid.tsx), whose themes reference these variables directly.
- */
-:root {
-  --pp-navy: #001c64;
-  --pp-blue: #0070e0;
-  --pp-blue-dark: #003087;
-  --pp-sky: #009cde;
-  --pp-highlight: #e6f0fc;
-  --pp-canvas: #f5f7fa;
-  --pp-surface: #ffffff;
-  --pp-border: #dbe1e8;
-  --pp-gridline: #e9edf2;
-  --pp-ink: #001435;
-  --pp-muted: #545d68;
-  --pp-success: #00875a;
-  --pp-warning: #b45309;
-  --pp-danger: #c4122f;
-  --pp-font: "PayPal Open", "Helvetica Neue", Helvetica, Arial, sans-serif;
-
-  /* Chart series, PayPal blue and navy first. */
-  --pp-chart-1: #0070e0;
-  --pp-chart-2: #001c64;
-  --pp-chart-3: #00a8a8;
-  --pp-chart-4: #f5a623;
-  --pp-chart-5: #7b61ff;
-  --pp-chart-6: #e8615a;
-  --pp-chart-7: #60cdff;
-  --pp-chart-8: #2e9e6a;
-  --pp-chart-9: #b47cd8;
-  --pp-chart-10: #8a94a6;
+/* Tabular figures for numbers in tables and KPIs (DESIGN.md) */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-@theme inline {
-  --color-pp-navy: var(--pp-navy);
-  --color-pp-blue: var(--pp-blue);
-  --color-pp-blue-dark: var(--pp-blue-dark);
-  --color-pp-sky: var(--pp-sky);
-  --color-pp-highlight: var(--pp-highlight);
-  --color-pp-canvas: var(--pp-canvas);
-  --color-pp-surface: var(--pp-surface);
-  --color-pp-border: var(--pp-border);
-  --color-pp-ink: var(--pp-ink);
-  --color-pp-muted: var(--pp-muted);
-  --color-pp-success: var(--pp-success);
-  --color-pp-warning: var(--pp-warning);
-  --color-pp-danger: var(--pp-danger);
-  --font-paypal: var(--pp-font);
+/* Visible 2px focus ring in primary-active with 2px offset (DESIGN.md) */
+*:focus-visible {
+  outline: 2px solid var(--primary-active);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
