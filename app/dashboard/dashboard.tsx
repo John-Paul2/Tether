@@ -36,7 +36,7 @@ import {
 } from './reports-store';
 import { pagesFor, pageTitlesFor } from './page-titles';
 import { ReportsSidebar } from './components/sidebar';
-import { DashboardSkeleton } from './components/skeleton';
+import { ContentSkeleton, SidebarSkeleton } from './components/skeleton';
 import * as reportState from './report-state';
 import { buildAi } from './studio/ai';
 import { buildStudioData, hasData } from './studio/data';
@@ -65,7 +65,28 @@ export function Dashboard(props: DashboardProps) {
     () => true,
     () => false,
   );
-  return inBrowser ? <ReportsDashboard {...props} /> : <DashboardSkeleton />;
+  return inBrowser ? (
+    <ReportsDashboard {...props} />
+  ) : (
+    <AppShell
+      sidebar={<SidebarSkeleton />}
+      doctorPanel={
+        <DoctorPanel
+          initialDrift={props.data.drift}
+          dropWebhooks={props.data.dropWebhooks}
+          onHealedOrUpdated={() => {}}
+        />
+      }
+    >
+      <DemoControlsPanel
+        dropWebhooks={props.data.dropWebhooks}
+        localOrders={props.data.local_orders}
+        onFaultChanged={() => {}}
+        onOrderMutated={() => {}}
+      />
+      <ContentSkeleton />
+    </AppShell>
+  );
 }
 
 function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
