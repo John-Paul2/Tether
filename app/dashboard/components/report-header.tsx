@@ -3,14 +3,14 @@
 import { useSyncExternalStore, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { EditIcon, EyeIcon, RedoIcon, RefreshIcon, UndoIcon } from './ui/icons';
-import { Button, IconButton } from './ui/ui';
+import { Badge, Button, IconButton } from './ui/ui';
 
-// The bar above Studio: which report and page you're on, how fresh the data is, and the
-// Edit / Save / Discard controls.
 export function ReportHeader({
   reportName,
   pageTitle,
   asOf,
+  paypalSlow,
+  paypalError,
   editing,
   pageIsEmpty,
   canUndo,
@@ -20,10 +20,13 @@ export function ReportHeader({
   onSave,
   onDiscard,
   onEditingChange,
+  onRefreshStudio,
 }: {
   reportName: string;
   pageTitle?: string;
   asOf: string;
+  paypalSlow?: boolean;
+  paypalError?: string | null;
   editing: boolean;
   pageIsEmpty: boolean;
   canUndo: boolean;
@@ -33,18 +36,26 @@ export function ReportHeader({
   onSave: () => void;
   onDiscard: () => void;
   onEditingChange: (editing: boolean) => void;
+  onRefreshStudio?: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-start gap-x-6 gap-y-3 border-b border-pp-border bg-white px-8 py-5">
+    <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-canvas-soft bg-canvas px-6 py-4">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-pp-muted">{reportName}</p>
-        <h1 className="truncate text-[28px] font-semibold leading-tight text-pp-navy">{pageTitle}</h1>
-        <DataFreshness asOf={asOf} />
+        <p className="truncate text-sm font-semibold text-mute">{reportName}</p>
+        <h1 className="truncate font-display text-[28px] font-extrabold leading-[34px] text-ink">
+          {pageTitle}
+        </h1>
+        <DataFreshness
+          asOf={asOf}
+          paypalSlow={paypalSlow}
+          paypalError={paypalError}
+          onRefreshStudio={onRefreshStudio}
+        />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {editing && pageIsEmpty && (
-          <p className="mr-2 text-sm text-pp-muted">
-            Drag a widget from <span className="font-semibold text-pp-navy">Compose</span> to get started.
+          <p className="mr-2 text-sm text-mute">
+            Drag a widget from <span className="font-semibold text-ink">Compose</span> to get started.
           </p>
         )}
         {editing && (
@@ -55,8 +66,8 @@ export function ReportHeader({
             <IconButton label="Redo" disabled={!canRedo} onClick={onRedo}>
               <RedoIcon />
             </IconButton>
-            <span className="mx-2 h-6 w-px bg-pp-border" aria-hidden />
-            <Button onClick={onDiscard} size="sm">
+            <span className="mx-1 h-6 w-px bg-canvas-soft" aria-hidden />
+            <Button variant="secondary" size="sm" onClick={onDiscard}>
               Discard
             </Button>
             <Button variant="primary" size="sm" onClick={onSave}>
@@ -70,15 +81,13 @@ export function ReportHeader({
           </Button>
         ) : (
           <Button variant="ghost" size="sm" onClick={() => onEditingChange(true)}>
-            <EditIcon className="size-4" /> Edit
+            <EditIcon className="size-4" /> Edit report
           </Button>
         )}
       </div>
     </div>
   );
 }
-
-// --- Data freshness -----------------------------------------------------------------
 
 const MINUTE_MS = 60_000;
 let now = 0;
@@ -99,31 +108,64 @@ function relativeTime(iso: string, at: number) {
   return hours < 24 ? `${hours} h ago` : new Date(iso).toLocaleDateString('en-GB');
 }
 
-function DataFreshness({ asOf }: { asOf: string }) {
+function DataFreshness({
+  asOf,
+  paypalSlow,
+  paypalError,
+  onRefreshStudio,
+}: {
+  asOf: string;
+  paypalSlow?: boolean;
+  paypalError?: string | null;
+  onRefreshStudio?: () => void;
+}) {
   const router = useRouter();
   const [refreshing, startRefresh] = useTransition();
   const at = useSyncExternalStore(subscribeNow, () => now, () => 0);
 
+  const handleRefresh = () => {
+    startRefresh(() => {
+      router.refresh();
+      onRefreshStudio?.();
+    });
+  };
+
   return (
-    <p className="mt-1 flex items-center gap-2 text-sm text-pp-muted">
+    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-mute">
       <span className="inline-flex items-center gap-1.5">
-        <span className="size-2 rounded-full bg-pp-success" aria-hidden />
-        PayPal sandbox
+        <span
+          className={`size-2 rounded-full ${
+            paypalError ? 'bg-negative' : paypalSlow ? 'bg-warning-deep' : 'bg-positive'
+          }`}
+          aria-hidden
+        />
+        PayPal sandbox &amp; local SQLite
       </span>
       <span aria-hidden>·</span>
-      <span title={new Date(asOf).toLocaleString('en-GB')}>
-        {refreshing ? 'Refreshing…' : `Updated ${at ? relativeTime(asOf, at) : new Date(asOf).toLocaleTimeString('en-GB')}`}
+      <span className="tabular-nums" title={new Date(asOf).toLocaleString('en-GB')}>
+        {refreshing
+          ? 'Refreshing…'
+          : `Updated ${at ? relativeTime(asOf, at) : new Date(asOf).toLocaleTimeString('en-GB')}`}
       </span>
       <button
         type="button"
-        onClick={() => startRefresh(() => router.refresh())}
+        onClick={handleRefresh}
         disabled={refreshing}
         aria-label="Refresh data"
         title="Refresh data"
-        className="inline-flex size-7 items-center justify-center rounded-full text-pp-blue hover:bg-pp-highlight disabled:text-pp-muted"
+        className="inline-flex size-7 items-center justify-center rounded-full text-primary hover:bg-primary-pale disabled:text-mute"
       >
         <RefreshIcon className={`size-4 ${refreshing ? 'animate-spin' : ''}`} />
       </button>
-    </p>
+      {paypalError ? (
+        <Badge tone="warning">
+          PayPal sandbox slow or unreachable ({paypalError}). Local SQLite tables loaded; click refresh to retry.
+        </Badge>
+      ) : paypalSlow ? (
+        <Badge tone="warning">
+          PayPal sandbox responded slowly (&gt;4s). Live data loaded.
+        </Badge>
+      ) : null}
+    </div>
   );
 }

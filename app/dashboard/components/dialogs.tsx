@@ -3,10 +3,6 @@
 import type { SavedReport } from '../reports-store';
 import { Button, Dialog } from './ui/ui';
 
-// The shell's confirmation dialogs. Each takes its own open flag and callbacks, so the
-// dashboard decides when they show and what happens next.
-
-// Which dialog is open, if any. Only one shows at a time.
 export type DashboardDialog =
   | { kind: 'unsaved'; then: () => void }
   | { kind: 'create' }
@@ -34,11 +30,13 @@ export function UnsavedChangesDialog({
       onClose={onCancel}
       actions={
         <>
-          <Button variant="ghost" onClick={onCancel}>
+          <Button variant="ghost" size="sm" onClick={onCancel}>
             Cancel
           </Button>
-          <Button onClick={onDiscard}>Discard changes</Button>
-          <Button variant="primary" onClick={onSave}>
+          <Button variant="secondary" size="sm" onClick={onDiscard}>
+            Discard changes
+          </Button>
+          <Button variant="primary" size="sm" onClick={onSave}>
             Save
           </Button>
         </>
@@ -66,10 +64,10 @@ export function CreateReportDialog({
       onClose={onClose}
       actions={
         <>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" size="sm" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="primary" type="submit" form={formId}>
+          <Button variant="primary" size="sm" type="submit" form={formId}>
             Create report
           </Button>
         </>
@@ -84,7 +82,7 @@ export function CreateReportDialog({
         }}
       >
         <p>Start from a blank page and build it with the widgets in Compose.</p>
-        <label className="mt-4 block text-sm font-semibold text-pp-navy" htmlFor="report-name">
+        <label className="mt-4 block text-sm font-semibold text-ink" htmlFor="report-name">
           Report name
         </label>
         <input
@@ -93,14 +91,13 @@ export function CreateReportDialog({
           autoFocus
           defaultValue="Untitled report"
           onFocus={(e) => e.currentTarget.select()}
-          className="mt-1 h-11 w-full rounded border border-pp-border px-3 text-[15px] text-pp-ink outline-none focus:border-pp-blue focus:ring-2 focus:ring-pp-highlight"
+          className="mt-1 h-11 w-full rounded-[12px] border border-ink bg-canvas px-4 text-base text-ink outline-none"
         />
       </form>
     </Dialog>
   );
 }
 
-/** Deletes a report, or resets the built-in one to the version shipped with the app. */
 export function DeleteReportDialog({
   report,
   onCancel,
@@ -117,10 +114,10 @@ export function DeleteReportDialog({
       onClose={onCancel}
       actions={
         <>
-          <Button variant="ghost" onClick={onCancel}>
+          <Button variant="ghost" size="sm" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={() => report && onConfirm(report)}>
+          <Button variant="danger" size="sm" onClick={() => report && onConfirm(report)}>
             {report?.builtIn ? 'Reset' : 'Delete'}
           </Button>
         </>
@@ -128,7 +125,7 @@ export function DeleteReportDialog({
     >
       {report &&
         (report.builtIn
-          ? `“${report.name}” will go back to the report shipped with the app. Your saved changes to it will be lost.`
+          ? `“${report.name}” will go back to the report shipped with Tether. Your saved changes to it will be lost.`
           : `“${report.name}” will be removed from this browser. This can't be undone.`)}
     </Dialog>
   );
@@ -148,21 +145,21 @@ export function ResetDemoDialog({
   return (
     <Dialog
       open={open}
-      title="Reset the demo?"
+      title="Reset report?"
       onClose={onCancel}
       actions={
         <>
-          <Button variant="ghost" onClick={onCancel}>
+          <Button variant="ghost" size="sm" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={onConfirm}>
-            Reset demo
+          <Button variant="danger" size="sm" onClick={onConfirm}>
+            Reset report
           </Button>
         </>
       }
     >
-      All reports you&apos;ve created will be deleted and “{builtInName}” will go back to its original state,
-      including any unsaved changes. This can&apos;t be undone.
+      All custom reports in this browser will be deleted and “{builtInName}” will return to its default
+      Health and Incidents pages.
     </Dialog>
   );
 }

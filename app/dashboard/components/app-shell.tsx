@@ -1,49 +1,40 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { BellIcon, HelpIcon } from './ui/icons';
-import { AgStudioLogo } from './ui/logo';
+import { AnchorIcon, LinkChainIcon } from './ui/icons';
 
-// The app frame, laid out like the PayPal Developer Dashboard: a white top bar, a left sidebar
-// and a light canvas. Shared by the dashboard, its loading skeleton and its error page.
+// The Tether app frame (DESIGN.md):
+// - White nav-bar (--canvas) with Tether name + small anchor/link icon and NO logos.
+// - Plain-text note: "Uses PayPal sandbox APIs".
+// - Cool-tinted page surface (--canvas-soft) with white cards (--canvas) on top.
+// - Responsive down to 375px width; Doctor panel sits beside the Studio canvas on desktop
+//   and stacks below the dashboard on mobile.
 
-function PayPalWordmark({ className = '' }: { className?: string }) {
+function TetherHeader() {
   return (
-    <span className={`font-bold italic tracking-tight ${className}`}>
-      <span className="text-pp-blue-dark">Pay</span>
-      <span className="text-pp-sky">Pal</span>
-    </span>
-  );
-}
-
-function BrandLockup() {
-  return (
-    <div className="flex items-center gap-3">
-      <AgStudioLogo className="-ml-3 h-12 w-auto" />
-      <span className="h-6 w-px bg-pp-border" aria-hidden />
-      <span className="flex items-baseline gap-1 text-xs text-pp-muted">
-        powered by <PayPalWordmark className="text-base" /> APIs
-      </span>
-    </div>
-  );
-}
-
-function TopBar() {
-  return (
-    <header className="flex h-16 shrink-0 items-center gap-6 border-b border-pp-border bg-white px-6">
-      <BrandLockup />
-      <div className="ml-auto flex items-center gap-1 text-pp-navy">
-        <span className="inline-flex size-9 items-center justify-center rounded-full" title="Help">
-          <HelpIcon />
+    <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-canvas-soft bg-canvas px-6 py-3 text-sm font-semibold text-ink">
+      <div className="flex items-center gap-3">
+        <span
+          className="inline-flex size-9 items-center justify-center rounded-full bg-primary-pale text-primary"
+          aria-hidden
+        >
+          <AnchorIcon className="size-5" />
         </span>
-        <span className="inline-flex size-9 items-center justify-center rounded-full" title="Notifications">
-          <BellIcon />
-        </span>
-        <span className="ml-2 flex items-center gap-2">
-          <span className="flex size-9 items-center justify-center rounded-full bg-pp-navy text-sm font-semibold text-white">
-            AG
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+          <span className="font-display text-2xl font-extrabold tracking-tight text-ink">
+            Tether
           </span>
-          <span className="hidden text-sm font-semibold sm:inline">Demo merchant</span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-normal text-mute">
+            <LinkChainIcon className="size-3.5 text-primary" />
+            Payment-event doctor · Uses PayPal sandbox APIs
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 text-xs font-normal text-mute">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-canvas-soft px-3 py-1 font-semibold text-ink">
+          <span className="size-2 rounded-full bg-positive" aria-hidden />
+          Verified-webhook state guard
         </span>
       </div>
     </header>
@@ -52,19 +43,36 @@ function TopBar() {
 
 export function AppShell({
   sidebar,
+  doctorPanel,
   children,
 }: {
   sidebar: ReactNode;
+  doctorPanel?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div className="flex h-dvh flex-col bg-pp-canvas font-paypal text-pp-ink">
-      <TopBar />
-      <div className="flex min-h-0 flex-1">
-        <nav className="flex w-64 shrink-0 flex-col border-r border-pp-border bg-white" aria-label="Reports">
+    <div className="flex min-h-dvh flex-col bg-canvas-soft font-sans text-ink xl:h-dvh xl:overflow-hidden">
+      <TetherHeader />
+      <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+        <nav
+          className="flex shrink-0 flex-col border-b border-canvas-soft bg-canvas xl:w-60 xl:border-b-0 xl:border-r"
+          aria-label="Reports and pages"
+        >
           {sidebar}
         </nav>
-        <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+
+        <main className="flex min-h-[680px] min-w-0 flex-1 flex-col xl:min-h-0">
+          {children}
+        </main>
+
+        {doctorPanel && (
+          <aside
+            aria-label="Doctor panel"
+            className="flex w-full shrink-0 flex-col border-t border-canvas-soft bg-canvas-soft p-4 xl:w-[430px] xl:overflow-y-auto xl:border-l xl:border-t-0"
+          >
+            {doctorPanel}
+          </aside>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import type { ReactNode, SVGProps } from 'react';
 
-// 24px stroke icons for the dashboard shell, drawn at 20px by default.
+// 24px stroke icons for the Tether dashboard shell, drawn at 20px by default.
 
 const icon = (paths: ReactNode) =>
   function Icon({ className = 'size-5', ...props }: SVGProps<SVGSVGElement>) {
@@ -20,6 +20,43 @@ const icon = (paths: ReactNode) =>
       </svg>
     );
   };
+
+// Small anchor / link icon for the Tether header (DESIGN.md: no logos, just Tether name + small link or anchor icon)
+export const AnchorIcon = icon(
+  <>
+    <circle cx="12" cy="5" r="3" />
+    <path d="M12 22V8M5 12H2a10 10 0 0 0 20 0h-3" />
+  </>,
+);
+
+export const LinkChainIcon = icon(
+  <>
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </>,
+);
+
+export const StethoscopeIcon = icon(
+  <>
+    <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3" />
+    <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4" />
+    <circle cx="20" cy="10" r="2" />
+  </>,
+);
+
+export const CheckCircleIcon = icon(
+  <>
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+    <path d="m9 11 3 3L22 4" />
+  </>,
+);
+
+export const ExternalLinkIcon = icon(
+  <>
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+    <path d="M15 3h6v6M10 14 21 3" />
+  </>,
+);
 
 export const ReportIcon = icon(
   <>

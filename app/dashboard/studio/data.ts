@@ -43,7 +43,7 @@ const onCalendar = (tableId: string, fieldId: string): AgRelationDefinition => (
 const sumOf = (id: string) => ({ id, aggregation: 'sum' as const });
 const avgOf = (id: string) => ({ id, aggregation: 'avg' as const });
 
-export const hasData = (_data: TetherData) => true;
+export const hasData = (data: TetherData) => Boolean(data.asOf);
 
 export function buildStudioData(data: TetherData): AgDataSourcesDefinition {
   const dates = [
