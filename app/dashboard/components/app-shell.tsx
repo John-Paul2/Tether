@@ -12,7 +12,7 @@ import { AnchorIcon, LinkChainIcon } from './ui/icons';
 
 function TetherHeader() {
   return (
-    <header className="sticky top-0 z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-canvas-soft bg-canvas px-6 py-3 text-sm font-semibold text-ink">
+    <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-canvas-soft bg-canvas px-6 py-3 text-sm font-semibold text-ink">
       <div className="flex items-center gap-3">
         <span
           className="inline-flex size-9 items-center justify-center rounded-full bg-primary-pale text-primary"
@@ -58,12 +58,12 @@ export function AppShell({
           className="shrink-0 border-b border-canvas-soft bg-canvas xl:w-52 xl:border-b-0 xl:border-r 2xl:w-56"
           aria-label="Reports and pages"
         >
-          <div className="flex flex-col xl:sticky xl:top-[61px] xl:max-h-[calc(100dvh-61px)]">
+          <div className="flex flex-col xl:sticky xl:top-0 xl:max-h-dvh">
             {sidebar}
           </div>
         </nav>
 
-        <main className="flex min-h-[680px] min-w-0 flex-1 flex-col">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           {children}
         </main>
 

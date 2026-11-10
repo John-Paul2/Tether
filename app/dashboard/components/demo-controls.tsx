@@ -220,17 +220,17 @@ export function DemoControlsPanel({
     <section
       ref={containerRef}
       aria-label="Demo controls"
-      className="relative mx-5 mb-1 mt-3"
+      className="relative mx-5 mt-3"
     >
       {/* Slim collapsed bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-[24px] bg-warning-bg px-4 py-2 text-warning-content">
-        <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-[24px] bg-warning-bg px-3.5 py-2 text-warning-content">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             aria-expanded={open}
             aria-controls="demo-controls-popover"
             onClick={() => setOpen((current) => !current)}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-[24px] bg-warning px-3.5 py-1.5 text-sm font-semibold text-warning-content transition-colors hover:brightness-95"
+            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-[24px] bg-warning px-3 py-1.5 text-xs font-semibold text-warning-content transition-colors hover:brightness-95 sm:text-sm"
           >
             <AlertIcon className="size-4 shrink-0" />
             <span>Demo controls</span>
@@ -239,12 +239,13 @@ export function DemoControlsPanel({
             />
           </button>
           <span className="hidden text-xs font-medium text-warning-content/90 sm:inline">
-            Labelled fault injection · PayPal sandbox
+            Labelled fault injection
+            <span className="hidden 2xl:inline"> · PayPal sandbox</span>
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full bg-canvas px-3 py-1 text-xs font-semibold text-ink">
+        <div className="flex items-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-canvas px-2.5 py-1 text-xs font-semibold text-ink">
             <span className="text-body">Simulate dropped webhooks:</span>
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${

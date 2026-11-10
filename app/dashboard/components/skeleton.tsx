@@ -24,17 +24,17 @@ export function ContentSkeleton() {
         <Skeleton className="mt-2 h-8 w-48" />
         <Skeleton className="mt-3 h-4 w-56" />
       </div>
-      <div className="grid flex-1 grid-cols-4 grid-rows-[112px_1fr_1fr] gap-4 p-4" aria-hidden>
+      <div className="grid flex-1 grid-cols-2 gap-4 p-4 sm:grid-cols-4 sm:grid-rows-[112px_280px_360px]" aria-hidden>
         {[0, 1, 2, 3].map((i) => (
           <div key={i} className="rounded-[24px] bg-canvas p-6">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="mt-4 h-9 w-20" />
           </div>
         ))}
-        <div className="col-span-4 rounded-[24px] bg-canvas p-6">
+        <div className="col-span-2 rounded-[24px] bg-canvas p-6 sm:col-span-4">
           <Skeleton className="h-full" />
         </div>
-        <div className="col-span-4 rounded-[24px] bg-canvas p-6">
+        <div className="col-span-2 rounded-[24px] bg-canvas p-6 sm:col-span-4">
           <Skeleton className="h-full" />
         </div>
       </div>

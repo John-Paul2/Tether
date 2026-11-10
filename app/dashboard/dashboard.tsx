@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AgStudioAiModule,
@@ -304,11 +304,14 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
         onOrderMutated={refreshAllData}
       />
 
-      <div className="flex-1 min-w-0" style={{ minHeight: `${studioMinHeight}px` }}>
+      <div
+        className="ag-studio-host flex-1 min-w-0"
+        style={{ '--studio-min-h': `${studioMinHeight}px` } as CSSProperties}
+      >
         {hasData(data) ? (
           <AgStudioProvider licenseKey={licenseKey} modules={ai ? [AgStudioAiModule] : undefined}>
             <AgStudio
-              style={{ height: '100%', minHeight: `${studioMinHeight}px`, width: '100%' }}
+              style={{ height: '100%', width: '100%' }}
               theme={agStudioTetherTheme}
               layout={{ widgetBorderEnabled: true, minWidth: 320 }}
               panels={{

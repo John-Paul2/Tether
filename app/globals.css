@@ -140,25 +140,45 @@ body {
   min-height: 360px;
 }
 
+@media (min-width: 640px) {
+  .ag-studio-host,
+  .ag-studio-host > div,
+  .ag-studio-host .ag-studio-root,
+  .ag-studio-host .ag-studio-layout {
+    min-height: var(--studio-min-h, 640px);
+  }
+}
+
 /* Responsive report tiles on narrow viewports (< 640px) in view mode */
 @media (max-width: 639px) {
+  .ag-studio-host,
+  .ag-studio-host > div,
+  .ag-studio-host .ag-studio-root,
+  .ag-studio-host .ag-studio-root-inner,
+  .ag-studio-host .ag-studio-root-canvas,
+  .ag-studio-host .ag-studio-layout,
   .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing)) {
+    position: static !important;
     min-width: 0 !important;
     height: auto !important;
     min-height: 0 !important;
+    display: block !important;
   }
 
-  .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing)) .ag-studio-layout-content {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+  .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))
+    .ag-studio-layout-content-container {
+    position: static !important;
+    width: auto !important;
     height: auto !important;
-    position: static;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
   }
 
   .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing)) .ag-studio-layout-widget {
     position: static !important;
     width: auto !important;
+    min-width: 0 !important;
     height: auto !important;
     left: auto !important;
     top: auto !important;
@@ -167,18 +187,18 @@ body {
 
   .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))
     .ag-studio-layout-widget:has(.ag-studio-value-widget) {
-    min-height: 124px;
+    min-height: 120px !important;
   }
 
   .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))
     .ag-studio-layout-widget:not(:has(.ag-studio-value-widget)) {
-    grid-column: 1 / -1;
-    min-height: 280px;
+    grid-column: 1 / -1 !important;
+    min-height: 280px !important;
   }
 
   .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))
     .ag-studio-layout-widget:has(.ag-studio-grid-widget) {
-    grid-column: 1 / -1;
-    min-height: 416px;
+    grid-column: 1 / -1 !important;
+    min-height: 416px !important;
   }
 }
