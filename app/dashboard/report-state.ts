@@ -15,9 +15,9 @@ const durable = (state: AgReportState) =>
 
 // The filters panel starts expanded in view mode, where it's the only panel, and collapsed in
 // edit mode, where Compose and Data need the room. Panel state isn't something Save compares.
-export const withFiltersPanelFor = (mode: AgStudioMode, state: AgReportState): AgReportState => ({
+export const withFiltersPanelFor = (_mode: AgStudioMode, state: AgReportState): AgReportState => ({
   ...state,
-  panels: { ...state.panels, filters: { ...state.panels?.filters, collapsed: mode === 'edit' } },
+  panels: { ...state.panels, filters: { ...state.panels?.filters, collapsed: true } },
 });
 
 // Studio leaves page navigation to the host: these add, remove and select pages in state.

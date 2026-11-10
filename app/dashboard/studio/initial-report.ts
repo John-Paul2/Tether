@@ -31,24 +31,19 @@ const kpi = (
     title: {
       enabled: true,
       text,
+      wrapping: true,
       typography: {
         fontFamily: SANS_FONT,
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: 'normal' as const,
         fontStyle: 'normal' as const,
       },
     },
     caption: {
-      enabled: true,
-      text: '',
-      typography: {
-        fontFamily: SANS_FONT,
-        fontSize: 0,
-        fontWeight: 'normal' as const,
-        fontStyle: 'normal' as const,
-      },
+      enabled: false,
     },
     style: {
+      textScaling: { enabled: true },
       typography: {
         fontFamily: DISPLAY_FONT,
         fontSize: 32,
@@ -96,12 +91,12 @@ const health: AgPageState = {
     },
   },
   widgetLayout: {
-    'kpi-events-received': at(0, 0, 6, 7),
-    'kpi-verification-rate': at(6, 0, 6, 7),
-    'kpi-open-drift': at(12, 0, 6, 7),
-    'kpi-avg-seconds-to-fixed': at(18, 0, 6, 7),
-    'events-over-time': at(0, 7, 24, 15),
-    'local-orders-grid': at(0, 22, 24, 18),
+    'kpi-events-received': at(0, 0, 6, 8),
+    'kpi-verification-rate': at(6, 0, 6, 8),
+    'kpi-open-drift': at(12, 0, 6, 8),
+    'kpi-avg-seconds-to-fixed': at(18, 0, 6, 8),
+    'events-over-time': at(0, 8, 24, 15),
+    'local-orders-grid': at(0, 23, 24, 26),
   },
 };
 
@@ -146,8 +141,8 @@ const incidents: AgPageState = {
     },
   },
   widgetLayout: {
-    'heal-log-grid': at(0, 0, 24, 18),
-    'agent-runs-grid': at(0, 18, 24, 20),
+    'heal-log-grid': at(0, 0, 24, 26),
+    'agent-runs-grid': at(0, 26, 24, 26),
   },
 };
 

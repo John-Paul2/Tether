@@ -133,3 +133,52 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Guarantee AG Studio grids keep >=360px height and never collapse */
+.ag-studio-grid-widget,
+.ag-studio-grid-widget .ag-root-wrapper {
+  min-height: 360px;
+}
+
+/* Responsive report tiles on narrow viewports (< 640px) in view mode */
+@media (max-width: 639px) {
+  .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing)) {
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing)) .ag-studio-layout-content {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    height: auto !important;
+    position: static;
+  }
+
+  .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing)) .ag-studio-layout-widget {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    left: auto !important;
+    top: auto !important;
+    padding: 0 !important;
+  }
+
+  .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))
+    .ag-studio-layout-widget:has(.ag-studio-value-widget) {
+    min-height: 124px;
+  }
+
+  .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))
+    .ag-studio-layout-widget:not(:has(.ag-studio-value-widget)) {
+    grid-column: 1 / -1;
+    min-height: 280px;
+  }
+
+  .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))
+    .ag-studio-layout-widget:has(.ag-studio-grid-widget) {
+    grid-column: 1 / -1;
+    min-height: 416px;
+  }
+}

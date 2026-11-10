@@ -233,6 +233,12 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
 
   const editing = mode === 'edit';
   const pages = pagesFor({ pageTitles: saved.pageTitles, state });
+  const activePage = state.pages.find((p) => p.id === state.selectedPageId);
+  const maxTrack = Object.values(activePage?.widgetLayout ?? {}).reduce(
+    (max, widgetPos) => (widgetPos ? Math.max(max, widgetPos.yTrack + widgetPos.ySpan) : max),
+    0,
+  );
+  const studioMinHeight = Math.max(640, maxTrack * 18 + 48);
 
   return (
     <AppShell
@@ -298,13 +304,17 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
         onOrderMutated={refreshAllData}
       />
 
-      <div className="min-h-[540px] flex-1">
+      <div className="flex-1 min-w-0" style={{ minHeight: `${studioMinHeight}px` }}>
         {hasData(data) ? (
           <AgStudioProvider licenseKey={licenseKey} modules={ai ? [AgStudioAiModule] : undefined}>
             <AgStudio
-              style={{ height: '100%', width: '100%' }}
+              style={{ height: '100%', minHeight: `${studioMinHeight}px`, width: '100%' }}
               theme={agStudioTetherTheme}
-              layout={{ widgetBorderEnabled: true }}
+              layout={{ widgetBorderEnabled: true, minWidth: 320 }}
+              panels={{
+                view: { left: [], right: [] },
+                edit: { left: ['ai'], right: ['filters', 'edit', 'data'] },
+              }}
               data={studioData}
               ai={ai}
               initialState={initialState}

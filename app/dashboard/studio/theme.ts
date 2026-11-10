@@ -34,6 +34,8 @@ export const agStudioTetherTheme = studioTheme.withParams({
   rowHoverColor: token('primary-pale'),
 
   // Cool-tinted canvas-soft background with white (canvas) widget cards on top (no drop shadows).
+  studioMinWidth: 320,
+  studioCanvasMinWidth: 320,
   studioWrapperBorder: false,
   studioWrapperBorderRadius: 0,
   studioWrapperSpacing: 0,
@@ -42,14 +44,14 @@ export const agStudioTetherTheme = studioTheme.withParams({
   studioCanvasBorderRadius: 0,
   studioCanvasShadow: false,
   studioCanvasBackgroundColor: token('canvas-soft'),
-  studioCanvasPadding: 16,
+  studioCanvasPadding: 12,
   studioCanvasRowHeight: 18,
   studioCanvasFontFamily: token('font-sans-stack'),
 
   // Widgets: white cards (--canvas), 16px radius, no shadow, subtle canvas-soft border.
   studioWidgetBackgroundColor: token('canvas'),
   studioWidgetBorder: line('canvas-soft'),
-  studioWidgetPadding: 14,
+  studioWidgetPadding: 8,
   studioWidgetTitleFontFamily: token('font-sans-stack'),
   studioWidgetTitleFontSize: 16,
   studioWidgetTitleFontWeight: 600,
