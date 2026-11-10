@@ -12,7 +12,7 @@ import { AnchorIcon, LinkChainIcon } from './ui/icons';
 
 function TetherHeader() {
   return (
-    <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-canvas-soft bg-canvas px-6 py-3 text-sm font-semibold text-ink">
+    <header className="sticky top-0 z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-canvas-soft bg-canvas px-6 py-3 text-sm font-semibold text-ink">
       <div className="flex items-center gap-3">
         <span
           className="inline-flex size-9 items-center justify-center rounded-full bg-primary-pale text-primary"
@@ -51,24 +51,26 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-canvas-soft font-sans text-ink xl:h-dvh xl:overflow-hidden">
+    <div className="flex min-h-dvh flex-col bg-canvas-soft font-sans text-ink">
       <TetherHeader />
-      <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+      <div className="flex flex-1 flex-col xl:flex-row">
         <nav
-          className="flex shrink-0 flex-col border-b border-canvas-soft bg-canvas xl:w-60 xl:border-b-0 xl:border-r"
+          className="shrink-0 border-b border-canvas-soft bg-canvas xl:w-52 xl:border-b-0 xl:border-r 2xl:w-56"
           aria-label="Reports and pages"
         >
-          {sidebar}
+          <div className="flex flex-col xl:sticky xl:top-[61px] xl:max-h-[calc(100dvh-61px)]">
+            {sidebar}
+          </div>
         </nav>
 
-        <main className="flex min-h-[680px] min-w-0 flex-1 flex-col xl:min-h-0">
+        <main className="flex min-h-[680px] min-w-0 flex-1 flex-col">
           {children}
         </main>
 
         {doctorPanel && (
           <aside
             aria-label="Doctor panel"
-            className="flex w-full shrink-0 flex-col border-t border-canvas-soft bg-canvas-soft p-4 xl:w-[430px] xl:overflow-y-auto xl:border-l xl:border-t-0"
+            className="flex w-full shrink-0 flex-col border-t border-primary-neutral/60 bg-primary-pale/55 p-5 xl:w-[40%] xl:min-w-[460px] xl:max-w-[780px] xl:border-l xl:border-t-0 xl:p-6"
           >
             {doctorPanel}
           </aside>
