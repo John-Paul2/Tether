@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import type { TetherDriftRow } from '@/lib/tether-data';
 import {
   AlertIcon,
+  ArrowRightIcon,
   CheckCircleIcon,
   RefreshIcon,
   StethoscopeIcon,
@@ -374,16 +375,18 @@ export function DoctorPanel({
   })();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {/* Doctor panel header & drifting orders card */}
       <div className="rounded-[24px] bg-canvas p-6 text-ink">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="inline-flex size-9 items-center justify-center rounded-full bg-primary-pale text-primary">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-pale text-primary">
               <StethoscopeIcon className="size-5" />
             </span>
             <div>
-              <h2 className="text-xl font-semibold tracking-[-0.2px] text-ink">Doctor panel</h2>
+              <h2 className="font-display text-[28px] font-extrabold leading-[34px] tracking-tight text-ink">
+                Doctor panel
+              </h2>
               <p className="text-xs text-mute">
                 Live PayPal vs. SQLite drift detection &amp; guarded repair
               </p>
@@ -516,7 +519,13 @@ export function DoctorPanel({
                 Server-sent tool calls as the Doctor agent inspects PayPal and SQLite
               </p>
             </div>
-            {isInvestigating && <Badge tone="info">Streaming…</Badge>}
+            <div className="flex items-center gap-2">
+              {isInvestigating ? (
+                <Badge tone="info">Streaming…</Badge>
+              ) : steps.length > 0 ? (
+                <Badge tone="info">{steps.length} steps</Badge>
+              ) : null}
+            </div>
           </div>
 
           {modelSlowNotice && (
@@ -548,6 +557,12 @@ export function DoctorPanel({
                   </Button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {isInvestigating && steps.length === 0 && !agentError && (
+            <div className="mt-4 rounded-[16px] border border-canvas-soft bg-canvas-soft/40 px-4 py-3 text-xs text-mute">
+              Connecting to Doctor agent trace stream and inspecting PayPal sandbox &amp; SQLite…
             </div>
           )}
 
@@ -592,7 +607,9 @@ export function DoctorPanel({
       {diagnosis && (
         <div className="rounded-[24px] bg-canvas p-6 text-ink">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-xl font-semibold tracking-[-0.2px] text-ink">Diagnosis</h3>
+            <h3 className="font-display text-2xl font-extrabold tracking-tight text-ink">
+              Diagnosis
+            </h3>
             <Badge tone={rootCauseTone(diagnosis.root_cause)}>
               {formatRootCause(diagnosis.root_cause)}
             </Badge>
@@ -605,20 +622,20 @@ export function DoctorPanel({
             <Badge tone={diagnosis.safe_to_heal ? 'positive' : 'warning'}>
               safe_to_heal: {diagnosis.safe_to_heal ? 'true' : 'false'} (server-verified)
             </Badge>
-            <span className="text-xs text-mute font-mono">{diagnosis.model_used}</span>
+            <span className="font-mono text-xs text-mute">{diagnosis.model_used}</span>
           </div>
 
-          <p className="mt-4 text-sm leading-6 text-body">{diagnosis.summary}</p>
+          <p className="mt-4 text-base leading-6 text-body">{diagnosis.summary}</p>
 
           {diagnosis.recommended_action && (
-            <div className="mt-3 rounded-[16px] bg-canvas-soft px-4 py-3 text-xs text-ink">
+            <div className="mt-4 rounded-[16px] bg-canvas-soft px-4 py-3 text-sm text-ink">
               <span className="font-semibold">Recommended action: </span>
               {diagnosis.recommended_action}
             </div>
           )}
 
           {/* Evidence list linked to trace steps */}
-          <div className="mt-4">
+          <div className="mt-5">
             <h4 className="text-xs font-semibold text-mute">
               Evidence ({diagnosis.evidence.length})
             </h4>
@@ -649,23 +666,34 @@ export function DoctorPanel({
             </ul>
           </div>
 
-          {/* Primary action: Approve fix */}
-          <div className="mt-6 border-t border-canvas-soft pt-4">
+          {/* Prominent primary action at the bottom of Diagnosis: Approve fix */}
+          <div className="mt-6 border-t border-canvas-soft pt-5">
+            {diagnosis.order_id && (
+              <p className="mb-2.5 text-xs font-semibold text-mute">
+                Target order:{' '}
+                <code className="font-mono text-ink">{diagnosis.order_id}</code>
+              </p>
+            )}
             <Button
               variant="primary"
-              className="w-full"
+              className="w-full py-3.5 text-base font-semibold"
               disabled={!diagnosis.safe_to_heal || isHealing || Boolean(healOutcome?.healed)}
               onClick={() => void handleApproveFix()}
             >
-              {isHealing
-                ? 'Resending webhook & verifying…'
-                : healOutcome?.healed
-                  ? 'Fix approved & verified'
-                  : 'Approve fix'}
+              <span>
+                {isHealing
+                  ? 'Resending webhook & verifying…'
+                  : healOutcome?.healed
+                    ? 'Fix approved & verified'
+                    : 'Approve fix'}
+              </span>
+              {!isHealing && !healOutcome?.healed && <ArrowRightIcon className="size-4" />}
             </Button>
 
             {disabledFixReason && (
-              <p className="mt-2 text-xs text-mute">{disabledFixReason}</p>
+              <p className="mt-2.5 rounded-[12px] bg-canvas-soft px-3.5 py-2.5 text-xs text-body">
+                {disabledFixReason}
+              </p>
             )}
 
             {healSlowNotice && (
@@ -681,38 +709,68 @@ export function DoctorPanel({
               </div>
             )}
 
-            {/* Before/After status and seconds-to-fixed */}
+            {/* Clear Before / After state and seconds-to-fixed after Approve fix */}
             {healOutcome && (
-              <div className="mt-4 rounded-[16px] bg-positive-bg p-4 text-positive-deep">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold">
-                    Verified webhook received &amp; order healed
-                  </span>
+              <div
+                aria-label="Heal before and after summary"
+                className="mt-5 rounded-[24px] bg-positive-bg p-5 text-positive-deep"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-base font-semibold text-positive-deep">
+                      Verified webhook received &amp; order healed
+                    </p>
+                    <p className="font-mono text-xs text-positive-deep/80">
+                      Order {healOutcome.order_id}
+                    </p>
+                  </div>
                   <Badge tone="positive">Healed</Badge>
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-4 rounded-[12px] bg-canvas p-3 text-ink">
-                  <div>
-                    <p className="text-xs text-mute">Local order status</p>
-                    <div className="mt-1 flex items-center gap-2">
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+                  <div
+                    aria-label="Before fix state"
+                    className="rounded-[16px] border border-canvas-soft bg-canvas p-3.5 text-ink"
+                  >
+                    <p className="text-xs font-semibold text-mute">Before</p>
+                    <div className="mt-1.5 flex items-center gap-2">
                       <Badge tone="info">{healOutcome.before_status}</Badge>
-                      <span className="font-semibold text-mute">→</span>
-                      <Badge tone="positive">{healOutcome.after_status}</Badge>
                     </div>
+                    <p className="mt-1.5 text-xs text-body">Drifting local order</p>
                   </div>
 
-                  <div className="text-right">
-                    <p className="text-xs text-mute">Seconds to fixed</p>
-                    <p className="font-display text-[28px] font-extrabold leading-[34px] text-ink tabular-nums">
-                      {healOutcome.seconds_to_fixed !== null
-                        ? `${healOutcome.seconds_to_fixed}s`
-                        : '—'}
-                    </p>
+                  <div className="flex items-center justify-center text-positive-deep" aria-hidden>
+                    <ArrowRightIcon className="size-5 rotate-90 sm:rotate-0" />
+                  </div>
+
+                  <div
+                    aria-label="After fix state"
+                    className="rounded-[16px] border border-positive/40 bg-canvas p-3.5 text-ink"
+                  >
+                    <p className="text-xs font-semibold text-positive-deep">After</p>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <Badge tone="positive">{healOutcome.after_status}</Badge>
+                    </div>
+                    <p className="mt-1.5 text-xs text-body">Verified webhook synced</p>
                   </div>
                 </div>
 
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-canvas px-4 py-3 text-ink">
+                  <div>
+                    <p className="text-xs font-semibold text-mute">Seconds to fixed</p>
+                    <p className="text-xs text-body">
+                      PayPal resend → verified webhook receipt
+                    </p>
+                  </div>
+                  <p className="font-display text-[32px] font-extrabold leading-[36px] text-ink tabular-nums">
+                    {healOutcome.seconds_to_fixed !== null
+                      ? `${healOutcome.seconds_to_fixed}s`
+                      : '—'}
+                  </p>
+                </div>
+
                 {healOutcome.event_id && (
-                  <p className="mt-2 font-mono text-xs text-positive-deep">
+                  <p className="mt-3 font-mono text-xs text-positive-deep">
                     Resent event: {healOutcome.event_id} · Audit log #{healOutcome.log_id}
                   </p>
                 )}
