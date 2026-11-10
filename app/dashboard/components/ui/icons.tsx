@@ -118,3 +118,5 @@ export const InboxIcon = icon(
     <path d="M5.5 5h13L21 13v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5z" />
   </>,
 );
+export const ChevronDownIcon = icon(<path d="m6 9 6 6 6-6" />);
+export const ArrowRightIcon = icon(<path d="M5 12h14m-6-6 6 6-6 6" />);

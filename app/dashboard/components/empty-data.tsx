@@ -10,7 +10,7 @@ export function EmptyData() {
         No payment events recorded yet
       </h2>
       <p className="mt-2 max-w-md text-base text-body">
-        Use the Demo controls panel above to create a PayPal sandbox order or receive your first webhook event.
+        Use the Demo controls bar above to create a PayPal sandbox order or receive your first webhook event.
       </p>
     </div>
   );
