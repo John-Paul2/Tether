@@ -113,6 +113,7 @@ export function Dashboard(props: DashboardProps) {
           onSave={() => {}}
           onFaultChanged={() => {}}
           onOrderMutated={() => {}}
+          openDriftCount={props.data.drift.length}
         />
       }
       doctorPanel={
@@ -139,6 +140,8 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
   const [history, setHistory] = useState<StudioHistory>(NO_HISTORY);
   const [mode, setMode] = useState<AgStudioMode>('view');
   const [dialog, setDialog] = useState<DashboardDialog>(null);
+  const [doctorDrawerOpen, setDoctorDrawerOpen] = useState(false);
+  const doctorTriggerRef = useRef<HTMLButtonElement>(null);
   const [manualSelectedOrderId, setManualSelectedOrderId] = useState<string | null>(null);
   const [recentlyHealedOrderId, setRecentlyHealedOrderId] = useState<string | null>(null);
   const healResetTimerRef = useRef<number | null>(null);
@@ -340,6 +343,9 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
 
   return (
     <AppShell
+      doctorDrawerOpen={doctorDrawerOpen}
+      onCloseDoctorDrawer={() => setDoctorDrawerOpen(false)}
+      doctorTriggerRef={doctorTriggerRef}
       topBar={
         <TopBar
           reports={reports}
@@ -386,6 +392,10 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
           }}
           onOrderMutated={refreshAllData}
           onRefreshStudio={() => apiRef.current?.reload()}
+          openDriftCount={data.drift.length}
+          doctorDrawerOpen={doctorDrawerOpen}
+          onToggleDoctorDrawer={() => setDoctorDrawerOpen((open) => !open)}
+          doctorTriggerRef={doctorTriggerRef}
         />
       }
       doctorPanel={
@@ -397,6 +407,10 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
           onHealSucceeded={handleHealSucceeded}
           onHealedOrUpdated={() => {
             router.refresh();
+          }}
+          onCloseDrawer={() => {
+            setDoctorDrawerOpen(false);
+            requestAnimationFrame(() => doctorTriggerRef.current?.focus());
           }}
         />
       }

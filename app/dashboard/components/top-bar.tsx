@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useSyncExternalStore, useTransition, type KeyboardEvent } from 'react';
+import { useRef, useState, useSyncExternalStore, useTransition, type KeyboardEvent, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import type { TetherLocalOrderRow } from '@/lib/tether-data';
 import type { ReportPage } from '../page-titles';
@@ -13,6 +13,7 @@ import {
   RedoIcon,
   RefreshIcon,
   SettingsIcon,
+  StethoscopeIcon,
   UndoIcon,
 } from './ui/icons';
 import { Badge, Button, IconButton, Menu, MenuDivider, MenuItem } from './ui/ui';
@@ -69,6 +70,10 @@ export type TopBarProps = {
   onFaultChanged: (drop: boolean) => void;
   onOrderMutated: () => void;
   onRefreshStudio?: () => void;
+  openDriftCount?: number;
+  doctorDrawerOpen?: boolean;
+  onToggleDoctorDrawer?: () => void;
+  doctorTriggerRef?: RefObject<HTMLButtonElement | null>;
 };
 
 export function TopBar({
@@ -104,6 +109,10 @@ export function TopBar({
   onFaultChanged,
   onOrderMutated,
   onRefreshStudio,
+  openDriftCount = 0,
+  doctorDrawerOpen = false,
+  onToggleDoctorDrawer,
+  doctorTriggerRef,
 }: TopBarProps) {
   const router = useRouter();
   const [refreshing, startRefresh] = useTransition();
@@ -298,6 +307,35 @@ export function TopBar({
           >
             <RefreshIcon className={`size-4 ${refreshing ? 'animate-spin' : ''}`} />
           </IconButton>
+
+          {onToggleDoctorDrawer && (
+            <button
+              ref={doctorTriggerRef}
+              type="button"
+              aria-expanded={doctorDrawerOpen}
+              aria-controls="doctor-drawer-aside"
+              aria-haspopup="dialog"
+              aria-label={
+                openDriftCount > 0
+                  ? `Open Doctor panel (${openDriftCount} open drift)`
+                  : 'Open Doctor panel'
+              }
+              onClick={onToggleDoctorDrawer}
+              className={`xl:hidden inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                doctorDrawerOpen
+                  ? 'border-accent bg-ai-soft text-accent'
+                  : 'border-accent/55 bg-ai-soft/70 text-accent hover:border-accent hover:bg-ai-soft'
+              }`}
+            >
+              <StethoscopeIcon className="size-3.5 shrink-0" />
+              <span>Doctor</span>
+              {openDriftCount > 0 && (
+                <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-drift-soft px-1.5 font-mono text-[11px] font-semibold text-drift tabular-nums">
+                  {openDriftCount}
+                </span>
+              )}
+            </button>
+          )}
 
           <DemoControlsPanel
             dropWebhooks={dropWebhooks}

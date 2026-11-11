@@ -3,43 +3,10 @@
 
 /*
  * Tailwind bridge for the Tether Noir tokens in app/tokens.css (the only file with literal
- * values). New components use the Noir names (bg-surface, text-fg-2, text-drift, border-line,
+ * values). Components use the Noir names (bg-surface, text-fg-2, text-drift, border-line,
  * font-data …).
- *
- * LEGACY ALIASES: the pre-Noir names (canvas, ink, primary, positive …) are kept as aliases that
- * point at Noir tokens so every existing component turns dark at once. They are removed once the
- * components are restyled in later phases.
  */
-:root {
-  --primary: var(--accent);
-  --on-primary: var(--text-on-accent);
-  --primary-active: var(--accent-strong);
-  --primary-light: var(--accent-strong);
-  --primary-neutral: var(--border-strong);
-  --primary-pale: var(--ai-soft);
-  --ink: var(--text-1);
-  --ink-deep: var(--text-1);
-  --body: var(--text-2);
-  --mute: var(--text-3);
-  --canvas: var(--bg-surface);
-  --canvas-soft: var(--border);
-  --positive: var(--sync);
-  --positive-deep: var(--sync);
-  --positive-bg: var(--sync-soft);
-  --warning: var(--warn-soft);
-  --warning-deep: var(--warn);
-  --warning-content: var(--warn);
-  --warning-bg: var(--bg-raised);
-  --negative: var(--drift);
-  --negative-deep: var(--drift);
-  --negative-bg: var(--drift);
-  --font-sans-stack: var(--font-ui-stack);
-  --card-shadow: var(--shadow-none);
-  --card-shadow-hover: var(--shadow-none);
-}
-
 @theme inline {
-  /* Noir names */
   --color-page: var(--bg-page);
   --color-surface: var(--bg-surface);
   --color-raised: var(--bg-raised);
@@ -62,40 +29,16 @@
   --color-ai-soft: var(--ai-soft);
   --color-paypal: var(--paypal);
   --color-paypal-soft: var(--paypal-soft);
-
-  --font-display: var(--font-display-stack);
-  --font-sans: var(--font-ui-stack);
-  --font-mono: var(--font-data-stack);
-  --font-data: var(--font-data-stack);
-
-  /* Legacy aliases (see note above) */
-  --color-primary: var(--primary);
-  --color-on-primary: var(--on-primary);
-  --color-primary-active: var(--primary-active);
-  --color-primary-light: var(--primary-light);
-  --color-primary-neutral: var(--primary-neutral);
-  --color-primary-pale: var(--primary-pale);
-  --color-ink: var(--ink);
-  --color-ink-deep: var(--ink-deep);
-  --color-body: var(--body);
-  --color-mute: var(--mute);
-  --color-canvas: var(--canvas);
-  --color-canvas-soft: var(--canvas-soft);
-  --color-positive: var(--positive);
-  --color-positive-deep: var(--positive-deep);
-  --color-positive-bg: var(--positive-bg);
-  --color-warning: var(--warning);
-  --color-warning-deep: var(--warning-deep);
-  --color-warning-content: var(--warning-content);
-  --color-warning-bg: var(--warning-bg);
-  --color-negative: var(--negative);
-  --color-negative-deep: var(--negative-deep);
-  --color-negative-bg: var(--negative-bg);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
+  --font-display: var(--font-display-stack);
+  --font-sans: var(--font-ui-stack);
+  --font-mono: var(--font-data-stack);
+  --font-data: var(--font-data-stack);
 }
 
 html {
@@ -189,7 +132,7 @@ body {
 /* Cards: 12px radius, 1px border, elevation by surface not shadow (design file 4) */
 .ag-studio-layout-widget-container {
   border-radius: var(--radius-card);
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--shadow-none);
   transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
 }
 
@@ -274,17 +217,27 @@ body {
   .ag-studio-host .ag-studio-layout,
   .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing)) {
     position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
     min-width: 0 !important;
     height: auto !important;
     min-height: 0 !important;
     display: block !important;
   }
 
+  .ag-studio-host {
+    overflow-x: hidden !important;
+  }
+
   .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))
     .ag-studio-layout-content-container {
     position: static !important;
-    width: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
     height: auto !important;
+    padding: var(--space-4) !important;
+    box-sizing: border-box !important;
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 12px !important;
@@ -292,12 +245,21 @@ body {
 
   .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing)) .ag-studio-layout-widget {
     position: static !important;
-    width: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
     min-width: 0 !important;
     height: auto !important;
     left: auto !important;
     top: auto !important;
     padding: 0 !important;
+  }
+
+  .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))
+    .ag-studio-layout-widget-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
   }
 
   .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))

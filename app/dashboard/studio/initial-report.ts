@@ -19,7 +19,7 @@ const avg = (id: string) => ({ id, aggregation: 'avg' as const });
 const count = (id: string) => ({ id, aggregation: 'count' as const });
 
 const DISPLAY_FONT = 'var(--font-display-stack)';
-const SANS_FONT = 'var(--font-sans-stack)';
+const SANS_FONT = 'var(--font-ui-stack)';
 
 const kpi = (
   text: string,

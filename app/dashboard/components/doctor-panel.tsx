@@ -6,6 +6,8 @@ import {
   AlertIcon,
   ArrowRightIcon,
   CheckCircleIcon,
+  CheckIcon,
+  CloseIcon,
   RefreshIcon,
   StethoscopeIcon,
 } from './ui/icons';
@@ -157,6 +159,7 @@ export function DoctorPanel({
   isSelectedDrifting = false,
   onHealedOrUpdated,
   onHealSucceeded,
+  onCloseDrawer,
 }: {
   initialDrift: TetherDriftRow[];
   dropWebhooks: boolean;
@@ -164,6 +167,7 @@ export function DoctorPanel({
   isSelectedDrifting?: boolean;
   onHealedOrUpdated: () => void;
   onHealSucceeded?: (outcome: { order_id: string; event_id: string | null }) => void;
+  onCloseDrawer?: () => void;
 }) {
   const [manualDrift, setManualDrift] = useState<{
     source: TetherDriftRow[];
@@ -193,6 +197,7 @@ export function DoctorPanel({
 
   const [steps, setSteps] = useState<AgentTraceStep[]>([]);
   const [highlightedToolCallId, setHighlightedToolCallId] = useState<string | null>(null);
+  const [hoveredToolCallId, setHoveredToolCallId] = useState<string | null>(null);
   const [diagnosis, setDiagnosis] = useState<AgentResultPayload | null>(null);
 
   const [isHealing, setIsHealing] = useState(false);
@@ -246,6 +251,7 @@ export function DoctorPanel({
     setHealOutcome(null);
     setHealError(null);
     setHighlightedToolCallId(null);
+    setHoveredToolCallId(null);
 
     const slowTimer = setTimeout(() => {
       setModelSlowNotice(
@@ -423,7 +429,6 @@ export function DoctorPanel({
     }
   };
 
-  // Explain why Approve fix is disabled when safe_to_heal is false (DESIGN.md requirement)
   const disabledFixReason = (() => {
     if (!diagnosis) return null;
     if (healOutcome?.healed) {
@@ -431,55 +436,71 @@ export function DoctorPanel({
     }
     if (diagnosis.safe_to_heal) return null;
     if (dropWebhooks) {
-      return 'Disabled because "Simulate dropped webhooks" is currently ON in Demo controls. Turn it OFF and click Investigate again so the resent webhook will not be dropped.';
+      return 'Disabled because "Simulate dropped webhooks" is ON in DEMO. Turn it OFF and run Investigate again.';
     }
     if (diagnosis.root_cause === 'NO_DRIFT') {
       return 'Disabled because this order has no state drift — local status already matches PayPal.';
     }
     if (diagnosis.root_cause === 'WEBHOOK_URL_OR_EVENT_MISMATCH') {
-      return 'Disabled because the PayPal webhook registration URL does not match PUBLIC_BASE_URL. Fix the webhook URL before resending.';
+      return 'Disabled because the PayPal webhook URL does not match PUBLIC_BASE_URL. Update registration before resending.';
     }
-    return 'Disabled because server-side heal preconditions (propose_heal) returned safe_to_heal = false.';
+    return 'Disabled because server-side preconditions (propose_heal) returned safe_to_heal = false.';
   })();
 
   const diagnosisSteps = diagnosis?.trace?.length ? diagnosis.trace : steps;
   const proposeStep = diagnosisSteps.find((s) => s.tool_name === 'propose_heal');
   const proposeConditions = extractProposeHealConditions(proposeStep);
   const resendEventId = diagnosis ? extractResendEventId(diagnosis, diagnosisSteps) : null;
+  const canApproveFix = Boolean(diagnosis?.safe_to_heal && !isHealing && !healOutcome?.healed);
+  const approveTitle =
+    disabledFixReason ??
+    (!diagnosis ? 'Run Investigate on a drifting order before approving replay.' : undefined);
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Doctor panel header & drifting orders card */}
-      <div className="rounded-[16px] bg-canvas p-6 text-ink shadow-[var(--card-shadow)]">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-pale text-primary">
-              <StethoscopeIcon className="size-5" />
+    <div
+      data-testid="doctor-panel"
+      className="flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface text-fg xl:sticky xl:top-4 xl:h-[calc(100dvh-var(--topbar-height)-2.25rem)] xl:max-h-[calc(100dvh-var(--topbar-height)-2.25rem)]"
+    >
+      {/* Sticky Header: Stethoscope, Title, Refresh, Optional Drawer Close, and Selected Order */}
+      <header className="shrink-0 border-b border-line bg-surface p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-input)] border border-accent/30 bg-ai-soft text-accent">
+              <StethoscopeIcon className="size-4.5" />
             </span>
-            <div>
-              <h2 className="font-display text-2xl font-extrabold leading-8 tracking-tight text-ink">
+            <div className="min-w-0">
+              <h2 className="font-display text-lg font-semibold leading-tight tracking-tight text-fg">
                 Doctor panel
               </h2>
-              <p className="text-xs text-mute">
-                Live PayPal vs. SQLite drift detection &amp; guarded repair
+              <p className="mt-0.5 truncate text-xs text-fg-2">
+                PayPal vs. SQLite drift &amp; replay
               </p>
             </div>
           </div>
 
-          <IconButton
-            label="Refresh drift check"
-            disabled={loadingDrift}
-            onClick={() => void fetchDrift()}
-          >
-            <RefreshIcon className={`size-4 ${loadingDrift ? 'animate-spin' : ''}`} />
-          </IconButton>
+          <div className="flex shrink-0 items-center gap-1">
+            <IconButton
+              label="Refresh drift check"
+              disabled={loadingDrift}
+              onClick={() => void fetchDrift()}
+            >
+              <RefreshIcon className={`size-4 ${loadingDrift ? 'animate-spin' : ''}`} />
+            </IconButton>
+            {onCloseDrawer && (
+              <span className="xl:hidden">
+                <IconButton label="Close Doctor drawer" onClick={onCloseDrawer}>
+                  <CloseIcon className="size-4" />
+                </IconButton>
+              </span>
+            )}
+          </div>
         </div>
 
         {selectedOrder && (
           <div
             data-testid="doctor-selected-order"
             data-order-id={selectedOrder.order_id}
-            className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-input)] border border-line bg-sunken px-3 py-2 text-xs"
+            className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-input)] border border-line bg-sunken px-3 py-2 text-xs"
           >
             <div className="flex min-w-0 items-center gap-2">
               <span className="text-fg-3">Selected</span>
@@ -508,7 +529,7 @@ export function DoctorPanel({
                   type="button"
                   disabled={isInvestigating}
                   onClick={() => void handleInvestigate(selectedOrder.order_id)}
-                  className="cursor-pointer rounded-full border border-accent/45 bg-ai-soft px-2.5 py-0.5 text-xs font-medium text-accent transition-colors hover:border-accent hover:bg-ai-soft/80 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="cursor-pointer rounded-full border border-accent/50 bg-ai-soft px-2.5 py-0.5 text-xs font-medium text-accent transition-colors hover:border-accent hover:bg-ai-soft/80 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isInvestigating && investigatingOrderId === selectedOrder.order_id
                     ? 'Investigating…'
@@ -518,30 +539,35 @@ export function DoctorPanel({
             </div>
           </div>
         )}
+      </header>
 
-        {/* Refreshing state banner */}
+      {/* Scrollable Middle: Drift list, SSE Trace steps, Diagnosis, Safety checks, Evidence, Result */}
+      <div className="flex-1 min-h-0 space-y-4 overflow-y-auto p-4">
         {loadingDrift && !paypalSlowNotice && (
           <div
             role="status"
-            className="mt-4 rounded-[12px] bg-primary-pale/70 px-3.5 py-2 text-xs font-semibold text-primary-active"
+            className="flex items-center gap-2 rounded-[var(--radius-input)] border border-accent/25 bg-ai-soft px-3 py-2 text-xs font-medium text-accent"
           >
-            Checking live PayPal sandbox order status…
+            <span
+              className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-accent/30 border-t-accent"
+              aria-hidden
+            />
+            <span>Checking live PayPal sandbox order status…</span>
           </div>
         )}
 
-        {/* PayPal slow or error state */}
         {paypalSlowNotice && (
-          <div className="mt-4 rounded-[16px] bg-warning-bg px-4 py-3 text-sm text-warning-content">
+          <div className="rounded-[var(--radius-input)] border border-warn/35 bg-warn-soft px-3.5 py-2.5 text-xs text-warn">
             {paypalSlowNotice}
           </div>
         )}
 
         {driftError && (
-          <div className="mt-4 rounded-[16px] bg-warning-bg p-4 text-sm text-warning-content">
-            <p className="font-semibold">PayPal sandbox drift check couldn&apos;t complete</p>
-            <p className="mt-1 text-xs">{driftError}</p>
+          <div className="rounded-[var(--radius-card)] border border-drift/40 bg-drift-soft p-3.5 text-xs text-drift">
+            <p className="font-semibold">PayPal sandbox drift check didn&apos;t finish</p>
+            <p className="mt-1 text-fg-2">{driftError}</p>
             <Button
-              variant="tertiary"
+              variant="secondary"
               size="sm"
               className="mt-3"
               onClick={() => void fetchDrift()}
@@ -552,420 +578,500 @@ export function DoctorPanel({
         )}
 
         {/* Drifting orders list or calm empty state */}
-        <div className="mt-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-ink">
+        <section aria-label="Drifting orders">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-fg-2">
               Drifting orders ({driftItems.length})
             </span>
-            {driftItems.length > 0 ? (
-              <Badge tone="negative">{driftItems.length} unresolved</Badge>
-            ) : (
-              <Badge tone="positive">In sync</Badge>
-            )}
+            <StatusPill
+              variant={driftItems.length > 0 ? 'Drift' : 'In sync'}
+              label={driftItems.length > 0 ? `${driftItems.length} open` : 'In sync'}
+            />
           </div>
 
           {driftItems.length === 0 ? (
-            <div className="mt-3 rounded-[16px] border border-canvas-soft bg-canvas-soft/45 p-4">
-              <div className="flex items-start gap-3">
-                <CheckCircleIcon className="mt-0.5 size-5 shrink-0 text-positive" />
-                <div>
-                  <p className="text-base font-semibold leading-6 text-ink">
-                    Everything is in sync
+            <div className="mt-2.5 rounded-[var(--radius-card)] border border-line bg-sunken/80 p-3.5">
+              <div className="flex items-start gap-2.5">
+                <CheckCircleIcon className="mt-0.5 size-4.5 shrink-0 text-sync" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-fg">Everything is in sync</p>
+                  <p className="mt-1 text-xs leading-relaxed text-fg-2">
+                    PayPal capture records match local orders. Load a drifting order from DEMO or run
+                    a live diagnostic check.
                   </p>
-                  <p className="mt-1 text-sm text-body">
-                    All completed PayPal orders match local status with verified capture webhooks.
-                  </p>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="mt-4"
+                  <button
+                    type="button"
                     disabled={isInvestigating}
                     onClick={() => void handleInvestigate()}
+                    className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border border-accent/50 bg-ai-soft px-3.5 py-1.5 text-xs font-semibold text-accent transition-colors hover:border-accent hover:bg-ai-soft/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {isInvestigating && investigatingOrderId === 'system'
-                      ? 'Investigating…'
-                      : 'Investigate system health'}
-                  </Button>
+                    {isInvestigating && investigatingOrderId === 'system' ? (
+                      <>
+                        <span
+                          className="size-3 animate-spin rounded-full border-[1.5px] border-accent/35 border-t-accent"
+                          aria-hidden
+                        />
+                        <span>Investigating…</span>
+                      </>
+                    ) : (
+                      <span>Investigate system health</span>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
           ) : (
-            <ul className="mt-3 divide-y divide-canvas-soft rounded-[16px] border border-canvas-soft">
+            <ul className="mt-2.5 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] border border-drift/35 bg-drift-soft/45">
               {driftItems.map((item) => {
                 const active = isInvestigating && investigatingOrderId === item.order_id;
                 return (
                   <li
                     key={item.order_id}
-                    className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-2.5 p-3.5 sm:flex-row sm:items-center sm:justify-between xl:flex-col xl:items-stretch 2xl:flex-row 2xl:items-center"
                   >
-                    <div className="min-w-0 space-y-1">
+                    <div className="min-w-0 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-sm font-semibold text-ink">
-                          {item.order_id}
+                        <span
+                          className="font-mono text-xs font-semibold text-fg"
+                          title={item.order_id}
+                        >
+                          {formatShortOrderId(item.order_id)}
                         </span>
-                        <span className="text-sm font-semibold text-body tabular-nums">
+                        <span className="font-mono text-xs font-semibold text-fg-2 tabular-nums">
                           ${Number(item.amount).toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                        <Badge tone="info">Local: {item.local_status}</Badge>
-                        <Badge tone="negative">PayPal: {item.paypal_status}</Badge>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <StatusPill variant="CREATED" label={`Local: ${item.local_status}`} />
+                        <StatusPill variant="Drift" label={`PayPal: ${item.paypal_status}`} />
                       </div>
                     </div>
 
-                    <Button
-                      variant="primary"
-                      size="sm"
+                    <button
+                      type="button"
                       disabled={isInvestigating}
                       onClick={() => void handleInvestigate(item.order_id)}
+                      className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-accent/60 bg-ai-soft px-3.5 py-1.5 text-xs font-semibold text-accent transition-colors hover:border-accent hover:bg-ai-soft/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {active ? 'Investigating…' : 'Investigate'}
-                    </Button>
+                      {active ? (
+                        <>
+                          <span
+                            className="size-3 animate-spin rounded-full border-[1.5px] border-accent/35 border-t-accent"
+                            aria-hidden
+                          />
+                          <span>Investigating…</span>
+                        </>
+                      ) : (
+                        <span>Investigate</span>
+                      )}
+                    </button>
                   </li>
                 );
               })}
             </ul>
           )}
-        </div>
-      </div>
+        </section>
 
-      {/* Live SSE trace step cards */}
-      {(isInvestigating || steps.length > 0 || agentError) && (
-        <div className="rounded-[16px] bg-canvas p-6 text-ink shadow-[var(--card-shadow)]">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <h3 className="text-base font-semibold text-ink">
-                Live agent trace
-                {investigatingOrderId && investigatingOrderId !== 'system'
-                  ? ` · ${investigatingOrderId}`
-                  : ''}
-              </h3>
-              <p className="text-xs text-mute">
-                Server-sent tool calls as the Doctor agent inspects PayPal and SQLite
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
+        {/* Live SSE trace step cards (--ai-soft) */}
+        {(isInvestigating || steps.length > 0 || agentError) && (
+          <section
+            aria-label="Live agent trace"
+            className="rounded-[var(--radius-card)] border border-line bg-sunken/70 p-3.5"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-fg-2">
+                  Agent trace
+                  {investigatingOrderId && investigatingOrderId !== 'system'
+                    ? ` · ${formatShortOrderId(investigatingOrderId)}`
+                    : ''}
+                </h3>
+              </div>
               {isInvestigating ? (
-                <Badge tone="info">Streaming…</Badge>
+                <Badge tone="info">
+                  <span
+                    className="size-2.5 animate-spin rounded-full border-[1.5px] border-accent/35 border-t-accent"
+                    aria-hidden
+                  />
+                  Streaming…
+                </Badge>
               ) : steps.length > 0 ? (
                 <Badge tone="info">{steps.length} steps</Badge>
               ) : null}
             </div>
-          </div>
 
-          {modelSlowNotice && (
-            <div className="mt-3 rounded-[16px] bg-warning-bg px-4 py-3 text-xs font-semibold text-warning-content">
-              {modelSlowNotice}
-            </div>
-          )}
+            {modelSlowNotice && (
+              <div className="mt-2.5 rounded-[var(--radius-input)] border border-warn/35 bg-warn-soft px-3 py-2 text-xs text-warn">
+                {modelSlowNotice}
+              </div>
+            )}
 
-          {agentError && (
-            <div className="mt-3 rounded-[16px] bg-warning-bg p-4 text-sm text-warning-content">
-              <div className="flex items-start gap-2">
-                <AlertIcon className="mt-0.5 size-4 shrink-0" />
-                <div>
-                  <p className="font-semibold">Diagnostic model timed out or returned an error</p>
-                  <p className="mt-1 text-xs">{agentError}</p>
-                  <Button
-                    variant="tertiary"
-                    size="sm"
-                    className="mt-3"
-                    onClick={() =>
-                      void handleInvestigate(
-                        investigatingOrderId === 'system'
-                          ? undefined
-                          : (investigatingOrderId ?? undefined),
-                      )
-                    }
-                  >
-                    Retry investigation
-                  </Button>
+            {agentError && (
+              <div className="mt-2.5 rounded-[var(--radius-input)] border border-drift/40 bg-drift-soft p-3 text-xs text-drift">
+                <div className="flex items-start gap-2">
+                  <AlertIcon className="mt-0.5 size-4 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-semibold">Investigation could not finish</p>
+                    <p className="mt-1 text-fg-2">{agentError}</p>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="mt-2.5"
+                      onClick={() =>
+                        void handleInvestigate(
+                          investigatingOrderId === 'system'
+                            ? undefined
+                            : (investigatingOrderId ?? undefined),
+                        )
+                      }
+                    >
+                      Retry investigation
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {isInvestigating && steps.length === 0 && !agentError && (
-            <div className="mt-4 rounded-[16px] border border-canvas-soft bg-canvas-soft/40 px-4 py-3 text-xs text-mute">
-              Connecting to Doctor agent trace stream and inspecting PayPal sandbox &amp; SQLite…
-            </div>
-          )}
+            {isInvestigating && steps.length === 0 && !agentError && (
+              <div className="mt-2.5 flex items-center gap-2 rounded-[var(--radius-input)] border border-accent/25 bg-ai-soft px-3 py-2.5 text-xs text-accent">
+                <span
+                  className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-accent/35 border-t-accent"
+                  aria-hidden
+                />
+                <span>Inspecting PayPal sandbox &amp; local SQLite…</span>
+              </div>
+            )}
 
-          <ol className="mt-4 space-y-2.5">
-            {steps.map((step, index) => {
-              const isNewest = index === steps.length - 1;
-              const isHighlighted = highlightedToolCallId === step.tool_call_id;
-              return (
-                <li
-                  key={step.tool_call_id}
-                  id={`trace-step-${step.tool_call_id}`}
-                  className={`rounded-[16px] border border-canvas-soft bg-canvas px-4 py-3 transition-colors ${
-                    isNewest || isHighlighted ? 'border-l-4 border-l-primary' : ''
-                  } ${isHighlighted ? 'bg-primary-pale/40' : ''}`}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex size-5 items-center justify-center rounded-full bg-primary-pale text-xs font-semibold text-primary-active tabular-nums">
-                        {step.step}
-                      </span>
-                      <span className="font-mono text-sm font-semibold text-ink">
-                        {step.tool_name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-mute tabular-nums">
-                      <span>{step.duration_ms} ms</span>
-                      <span aria-hidden>·</span>
-                      <span className="font-mono">{step.model_used}</span>
-                    </div>
-                  </div>
-                  <p className="mt-1.5 break-words font-mono text-xs text-body">
-                    {step.result_summary}
-                  </p>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      )}
-
-      {/* Diagnosis card */}
-      {diagnosis && (
-        <div className="rounded-[16px] bg-canvas p-6 text-ink shadow-[var(--card-shadow)]">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="font-display text-2xl font-extrabold leading-8 tracking-tight text-ink">
-              Diagnosis
-            </h3>
-            <Badge tone={rootCauseTone(diagnosis.root_cause)}>
-              {formatRootCause(diagnosis.root_cause)}
-            </Badge>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Badge tone={confidenceTone(diagnosis.confidence)}>
-              Confidence: {diagnosis.confidence}
-            </Badge>
-            <span className="font-mono text-xs text-mute">{diagnosis.model_used}</span>
-          </div>
-
-          <p className="mt-4 text-sm leading-6 text-body">{diagnosis.summary}</p>
-
-          {diagnosis.recommended_action && (
-            <div className="mt-4 rounded-[16px] bg-canvas-soft px-4 py-3 text-sm text-ink">
-              <span className="font-semibold">Recommended action: </span>
-              {diagnosis.recommended_action}
-            </div>
-          )}
-
-          {/* Evidence list linked to trace steps */}
-          <div className="mt-4">
-            <h4 className="text-xs font-semibold text-mute">
-              Evidence ({diagnosis.evidence.length})
-            </h4>
-            <ul className="mt-2 space-y-2">
-              {diagnosis.evidence.map((ev, idx) => {
-                const matchedStep = steps.find((s) => s.tool_call_id === ev.tool_call_id);
+            <ol className="mt-2.5 space-y-2">
+              {steps.map((step, index) => {
+                const isOutlined =
+                  hoveredToolCallId === step.tool_call_id ||
+                  highlightedToolCallId === step.tool_call_id;
+                const isLatestRunning = isInvestigating && index === steps.length - 1;
                 return (
                   <li
-                    key={`${ev.tool_call_id}-${idx}`}
-                    className="rounded-[12px] border border-canvas-soft px-3.5 py-2.5 text-xs text-body"
+                    key={step.tool_call_id}
+                    id={`trace-step-${step.tool_call_id}`}
+                    className={`rounded-[var(--radius-input)] border px-3 py-2.5 transition-[border-color,box-shadow,background-color] duration-[var(--dur-fast)] ${
+                      isOutlined
+                        ? 'border-accent bg-ai-soft ring-1 ring-accent'
+                        : 'border-accent/25 bg-ai-soft'
+                    }`}
                   >
-                    <p>{ev.claim}</p>
-                    <a
-                      href={`#trace-step-${ev.tool_call_id}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        scrollToStep(ev.tool_call_id);
-                      }}
-                      className="mt-1 inline-flex items-center gap-1 rounded font-semibold text-primary hover:text-primary-active hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active"
-                    >
-                      {matchedStep
-                        ? `→ Step ${matchedStep.step}: ${matchedStep.tool_name}`
-                        : `→ Trace step (${ev.tool_call_id})`}
-                    </a>
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-accent/35 bg-sunken font-mono text-[11px] font-semibold text-accent tabular-nums">
+                          {step.step}
+                        </span>
+                        <span className="truncate font-mono text-xs font-semibold text-fg">
+                          {step.tool_name}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <span className="rounded-full border border-line bg-sunken px-2 py-0.5 font-mono text-[11px] text-fg-2 tabular-nums">
+                          {step.duration_ms} ms
+                        </span>
+                        <span className="rounded-full border border-accent/30 bg-sunken px-2 py-0.5 font-mono text-[11px] text-ai">
+                          {step.model_used}
+                        </span>
+                        {isLatestRunning ? (
+                          <span
+                            className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-accent/35 border-t-accent"
+                            title="Step running"
+                            aria-hidden
+                          />
+                        ) : (
+                          <CheckIcon
+                            className="size-3.5 shrink-0 text-sync"
+                            strokeWidth={2}
+                            aria-hidden
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <p className="mt-1.5 break-words font-mono text-[11px] leading-relaxed text-fg-2">
+                      {step.result_summary}
+                    </p>
                   </li>
                 );
               })}
-            </ul>
-          </div>
+            </ol>
+          </section>
+        )}
 
-          {/* Heal pre-conditions between Evidence list and Approve fix */}
-          <div className="mt-4 rounded-[16px] border border-canvas-soft bg-canvas-soft/45 p-4">
+        {/* Diagnosis card */}
+        {diagnosis && (
+          <section
+            aria-label="Diagnosis"
+            className="space-y-3.5 rounded-[var(--radius-card)] border border-line-strong bg-raised p-4"
+          >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h4 className="text-xs font-semibold text-mute">Heal pre-conditions</h4>
-              <Badge tone={diagnosis.safe_to_heal ? 'positive' : 'warning'}>
-                {diagnosis.safe_to_heal ? (
-                  <>
-                    <CheckCircleIcon className="size-3.5" />
-                    safe_to_heal: true (server-verified)
-                  </>
-                ) : (
-                  <>
-                    <AlertIcon className="size-3.5" />
-                    safe_to_heal: false (server-verified)
-                  </>
-                )}
+              <h3 className="font-display text-lg font-semibold text-fg">Diagnosis</h3>
+              <Badge tone={rootCauseTone(diagnosis.root_cause)}>
+                {formatRootCause(diagnosis.root_cause)}
               </Badge>
             </div>
 
-            {proposeConditions ? (
-              <ul className="mt-3 space-y-2">
-                {proposeConditions.map((cond, index) => {
-                  const passed = Boolean(cond.passed ?? cond.ok);
-                  const label = cond.label || cond.name || `Pre-condition ${index + 1}`;
-                  return (
-                    <li
-                      key={`${label}-${index}`}
-                      className="flex items-start gap-2 text-xs text-body"
-                    >
-                      <span
-                        className={`mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full font-bold ${
-                          passed
-                            ? 'bg-positive-bg text-positive-deep'
-                            : 'bg-negative/15 text-negative-deep'
-                        }`}
-                        aria-label={passed ? 'Passed' : 'Failed'}
-                      >
-                        {passed ? '✓' : '✕'}
-                      </span>
-                      <div>
-                        <span className="font-semibold text-ink">{label}</span>
-                        {!passed && cond.reason && (
-                          <p className="mt-0.5 text-negative-deep">{cond.reason}</p>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              /*
-               * TODO(doctor-panel): `propose_heal` in `AgentTraceStep.result_summary` currently
-               * emits only `safe_to_heal=<bool> event_id=<id>` and does not expose the 5
-               * per-condition booleans/reasons from `checkHealPreconditions`. Show those 5
-               * green-tick / red-cross rows here once exposed by `/api/agent`.
-               */
-              null
-            )}
-          </div>
-
-          {/* Prominent primary action at the bottom of Diagnosis: Approve fix */}
-          <div className="mt-4 border-t border-canvas-soft pt-4">
-            {diagnosis.order_id && resendEventId && (
-              <p className="mb-3 rounded-[12px] bg-canvas-soft px-3.5 py-2.5 text-sm text-body">
-                Will resend webhook event{' '}
-                <code className="font-mono text-xs font-semibold text-ink">{resendEventId}</code>{' '}
-                for order{' '}
-                <code className="font-mono text-xs font-semibold text-ink">
-                  {diagnosis.order_id}
-                </code>
-                . No PayPal state is changed.
-              </p>
-            )}
-            <Button
-              variant="primary"
-              className="w-full py-3 text-base font-semibold"
-              disabled={!diagnosis.safe_to_heal || isHealing || Boolean(healOutcome?.healed)}
-              onClick={() => void handleApproveFix()}
-            >
-              <span>
-                {isHealing
-                  ? 'Resending webhook & verifying…'
-                  : healOutcome?.healed
-                    ? 'Fix approved & verified'
-                    : 'Approve fix'}
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={confidenceTone(diagnosis.confidence)}>
+                Confidence: {diagnosis.confidence}
+              </Badge>
+              <span className="rounded-full border border-accent/30 bg-ai-soft px-2 py-0.5 font-mono text-[11px] text-ai">
+                {diagnosis.model_used}
               </span>
-              {!isHealing && !healOutcome?.healed && <ArrowRightIcon className="size-4" />}
-            </Button>
+            </div>
 
-            {disabledFixReason && (
-              <p className="mt-2.5 rounded-[12px] bg-canvas-soft px-3.5 py-2.5 text-xs text-body">
-                {disabledFixReason}
-              </p>
-            )}
+            <p className="text-xs leading-relaxed text-fg-2">{diagnosis.summary}</p>
 
-            {healSlowNotice && (
-              <p className="mt-3 rounded-[12px] bg-primary-pale px-3.5 py-2.5 text-xs font-semibold text-primary-active">
-                {healSlowNotice}
-              </p>
-            )}
-
-            {healError && (
-              <div className="mt-3 rounded-[16px] bg-warning-bg p-3.5 text-xs text-warning-content">
-                <p className="font-semibold">Heal could not complete</p>
-                <p className="mt-1">{healError}</p>
+            {diagnosis.recommended_action && (
+              <div className="rounded-[var(--radius-input)] border border-line bg-sunken px-3 py-2.5 text-xs text-fg">
+                <span className="font-semibold text-fg">Recommended action: </span>
+                <span className="text-fg-2">{diagnosis.recommended_action}</span>
               </div>
             )}
 
-            {/* Clear Before / After state and seconds-to-fixed after Approve fix */}
-            {healOutcome && (
-              <div
-                aria-label="Heal before and after summary"
-                className="mt-4 rounded-[16px] bg-positive-bg p-4 text-positive-deep"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-base font-semibold text-positive-deep">
-                      Verified webhook received &amp; order healed
-                    </p>
-                    <p className="font-mono text-xs text-positive-deep/80">
-                      Order {healOutcome.order_id}
-                    </p>
-                  </div>
-                  <Badge tone="positive">Healed</Badge>
-                </div>
+            {/* Five safety checks / heal preconditions */}
+            <div className="rounded-[var(--radius-input)] border border-line bg-sunken p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-fg-2">
+                  Safety checks
+                </h4>
+                <Badge tone={diagnosis.safe_to_heal ? 'positive' : 'warning'}>
+                  {diagnosis.safe_to_heal ? (
+                    <>
+                      <CheckCircleIcon className="size-3.5" />
+                      safe_to_heal: true
+                    </>
+                  ) : (
+                    <>
+                      <AlertIcon className="size-3.5" />
+                      safe_to_heal: false
+                    </>
+                  )}
+                </Badge>
+              </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-                  <div
-                    aria-label="Before fix state"
-                    className="rounded-[16px] border border-canvas-soft bg-canvas p-3.5 text-ink"
-                  >
-                    <p className="text-xs font-semibold text-mute">Before</p>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <Badge tone="info">{healOutcome.before_status}</Badge>
-                    </div>
-                    <p className="mt-1.5 text-xs text-body">Drifting local order</p>
-                  </div>
+              {proposeConditions ? (
+                <ul className="mt-2.5 space-y-2">
+                  {proposeConditions.map((cond, index) => {
+                    const passed = Boolean(cond.passed ?? cond.ok);
+                    const label = cond.label || cond.name || `Pre-condition ${index + 1}`;
+                    return (
+                      <li key={`${label}-${index}`} className="flex items-start gap-2 text-xs">
+                        <span
+                          className={`mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full ${
+                            passed ? 'bg-sync-soft text-sync' : 'bg-drift-soft text-drift'
+                          }`}
+                          aria-label={passed ? 'Passed' : 'Failed'}
+                        >
+                          {passed ? (
+                            <CheckIcon className="size-2.5" strokeWidth={2.2} />
+                          ) : (
+                            <CloseIcon className="size-2.5" strokeWidth={2.2} />
+                          )}
+                        </span>
+                        <div className="min-w-0">
+                          <span className="font-medium text-fg">{label}</span>
+                          {!passed && cond.reason && (
+                            <p className="mt-0.5 text-drift">{cond.reason}</p>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                /*
+                 * TODO(doctor-panel): `propose_heal` in `AgentTraceStep.result_summary` currently
+                 * emits only `safe_to_heal=<bool> event_id=<id>` and does not expose the 5
+                 * per-condition booleans/reasons from `checkHealPreconditions`. Render those 5
+                 * checklist rows here once exposed by `/api/agent`.
+                 */
+                <p className="mt-2 text-xs leading-relaxed text-fg-3">
+                  5 server preconditions gated via <code className="font-mono text-fg-2">propose_heal</code>
+                  ; per-check breakdown awaits structured precondition output in the agent stream.
+                </p>
+              )}
+            </div>
 
-                  <div className="flex items-center justify-center text-positive-deep" aria-hidden>
-                    <ArrowRightIcon className="size-5 rotate-90 sm:rotate-0" />
-                  </div>
-
-                  <div
-                    aria-label="After fix state"
-                    className="rounded-[16px] border border-positive/40 bg-canvas p-3.5 text-ink"
-                  >
-                    <p className="text-xs font-semibold text-positive-deep">After</p>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <Badge tone="positive">{healOutcome.after_status}</Badge>
-                    </div>
-                    <p className="mt-1.5 text-xs text-body">Verified webhook synced</p>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[16px] bg-canvas px-4 py-3 text-ink">
-                  <div>
-                    <p className="text-xs font-semibold text-mute">Seconds to fixed</p>
-                    <p className="text-xs text-body">
-                      PayPal resend → verified webhook receipt
-                    </p>
-                  </div>
-                  <p className="font-display text-[32px] font-extrabold leading-[36px] text-ink tabular-nums">
-                    {healOutcome.seconds_to_fixed !== null
-                      ? `${healOutcome.seconds_to_fixed}s`
-                      : '—'}
-                  </p>
-                </div>
-
-                {healOutcome.event_id && (
-                  <p className="mt-3 font-mono text-xs text-positive-deep">
-                    Resent event: {healOutcome.event_id} · Audit log #{healOutcome.log_id}
-                  </p>
-                )}
+            {/* Evidence list linked to step cards; hover/focus outlines matching step card with --ai */}
+            {diagnosis.evidence.length > 0 && (
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-fg-2">
+                  Evidence ({diagnosis.evidence.length})
+                </h4>
+                <ul className="mt-2 space-y-1.5">
+                  {diagnosis.evidence.map((ev, idx) => {
+                    const matchedStep = steps.find((s) => s.tool_call_id === ev.tool_call_id);
+                    const isActiveEvidence =
+                      hoveredToolCallId === ev.tool_call_id ||
+                      highlightedToolCallId === ev.tool_call_id;
+                    return (
+                      <li
+                        key={`${ev.tool_call_id}-${idx}`}
+                        onMouseEnter={() => setHoveredToolCallId(ev.tool_call_id)}
+                        onMouseLeave={() =>
+                          setHoveredToolCallId((prev) => (prev === ev.tool_call_id ? null : prev))
+                        }
+                        className={`rounded-[var(--radius-input)] border px-3 py-2 text-xs transition-colors ${
+                          isActiveEvidence
+                            ? 'border-accent/60 bg-ai-soft/50 text-fg'
+                            : 'border-line bg-surface text-fg-2'
+                        }`}
+                      >
+                        <p className="leading-relaxed">{ev.claim}</p>
+                        <a
+                          href={`#trace-step-${ev.tool_call_id}`}
+                          onFocus={() => setHoveredToolCallId(ev.tool_call_id)}
+                          onBlur={() =>
+                            setHoveredToolCallId((prev) =>
+                              prev === ev.tool_call_id ? null : prev,
+                            )
+                          }
+                          onClick={(e) => {
+                            e.preventDefault();
+                            scrollToStep(ev.tool_call_id);
+                          }}
+                          className="mt-1 inline-flex items-center gap-1 rounded font-mono text-[11px] font-medium text-accent hover:text-accent-strong hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                        >
+                          {matchedStep
+                            ? `Step ${matchedStep.step}: ${matchedStep.tool_name}`
+                            : `Step (${ev.tool_call_id})`}
+                          <ArrowRightIcon className="size-3" />
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             )}
+          </section>
+        )}
+
+        {/* Heal progress & outcome */}
+        {healSlowNotice && (
+          <div className="rounded-[var(--radius-input)] border border-accent/35 bg-ai-soft px-3.5 py-2.5 text-xs font-medium text-accent">
+            {healSlowNotice}
           </div>
+        )}
+
+        {healError && (
+          <div className="rounded-[var(--radius-card)] border border-drift/45 bg-drift-soft p-3.5 text-xs text-drift">
+            <p className="font-semibold">Heal could not complete</p>
+            <p className="mt-1 text-fg-2">{healError}</p>
+          </div>
+        )}
+
+        {healOutcome && (
+          <section
+            aria-label="Heal before and after summary"
+            className="space-y-3 rounded-[var(--radius-card)] border border-sync/45 bg-sync-soft p-4"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-sync">
+                  Verified webhook received &amp; order healed
+                </p>
+                <p className="font-mono text-xs text-fg-2">Order {healOutcome.order_id}</p>
+              </div>
+              <StatusPill variant="In sync" label="Healed" />
+            </div>
+
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+              <div
+                aria-label="Before fix state"
+                className="rounded-[var(--radius-input)] border border-line bg-surface p-2.5"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-fg-3">
+                  Before
+                </p>
+                <div className="mt-1.5">
+                  <StatusPill variant={healOutcome.before_status === 'PAID' ? 'PAID' : 'CREATED'} />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-center text-sync" aria-hidden>
+                <ArrowRightIcon className="size-4" />
+              </div>
+
+              <div
+                aria-label="After fix state"
+                className="rounded-[var(--radius-input)] border border-sync/45 bg-surface p-2.5"
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-sync">
+                  After
+                </p>
+                <div className="mt-1.5">
+                  <StatusPill variant="PAID" label={healOutcome.after_status} />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-[var(--radius-input)] border border-line bg-surface px-3.5 py-2.5">
+              <div>
+                <p className="text-xs font-semibold text-fg">Seconds to fixed</p>
+                <p className="text-[11px] text-fg-3">PayPal resend → verified webhook receipt</p>
+              </div>
+              <p className="font-display text-[28px] font-semibold leading-none text-sync tabular-nums">
+                {healOutcome.seconds_to_fixed !== null ? `${healOutcome.seconds_to_fixed}s` : '—'}
+              </p>
+            </div>
+
+            {healOutcome.event_id && (
+              <p className="break-all font-mono text-xs text-fg">
+                Resent event: {healOutcome.event_id} · Audit log #{healOutcome.log_id}
+              </p>
+            )}
+          </section>
+        )}
+      </div>
+
+      {/* Sticky Footer: Preview line + Single filled Approve fix button */}
+      <footer className="shrink-0 border-t border-line bg-surface p-4">
+        {diagnosis?.order_id && resendEventId ? (
+          <p className="mb-2.5 rounded-[var(--radius-input)] border border-line bg-sunken px-3 py-2 text-xs leading-relaxed text-fg-2">
+            Will resend webhook event{' '}
+            <code className="font-mono font-semibold text-fg">{resendEventId}</code> for order{' '}
+            <code className="font-mono font-semibold text-fg">{diagnosis.order_id}</code>. No
+            PayPal state is changed.
+          </p>
+        ) : disabledFixReason ? (
+          <p className="mb-2.5 rounded-[var(--radius-input)] border border-line bg-sunken px-3 py-2 text-xs leading-relaxed text-fg-3">
+            {disabledFixReason}
+          </p>
+        ) : (
+          <p className="mb-2 text-xs text-fg-3">
+            Investigate a drifting order to prepare guarded webhook replay.
+          </p>
+        )}
+
+        <div title={!canApproveFix ? approveTitle : undefined}>
+          <Button
+            variant="primary"
+            className="w-full py-2.5 text-sm font-semibold"
+            disabled={!canApproveFix}
+            title={approveTitle}
+            onClick={() => void handleApproveFix()}
+          >
+            {isHealing && (
+              <span
+                className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-on-accent/40 border-t-on-accent"
+                aria-hidden
+              />
+            )}
+            <span>
+              {isHealing
+                ? 'Resending event…'
+                : healOutcome?.healed
+                  ? 'Fix approved & verified'
+                  : 'Approve fix'}
+            </span>
+            {!isHealing && !healOutcome?.healed && <ArrowRightIcon className="size-4" />}
+          </Button>
         </div>
-      )}
+      </footer>
     </div>
   );
 }
