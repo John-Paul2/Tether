@@ -1,0 +1,120 @@
+/*
+ * Tether Noir design tokens (TETHER_THEME_AND_DESIGN.md).
+ *
+ * The ONLY file in the app that contains literal colour, radius, shadow, spacing, motion or
+ * font values. Components, Tailwind utilities (globals.css @theme), the AG Studio theme
+ * (dashboard/studio/theme.ts) and the AG Grid theme (dashboard/studio/widgets.tsx) all read
+ * these variables.
+ *
+ * Dark theme lives on :root. :root[data-theme="light"] is reserved: a light theme is a
+ * one-block change here (inverted surfaces, darker state colours) and nothing else.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- 2.1 Surfaces and text ---------------------------------------------------------- */
+  --bg-page: #0a0d14;
+  --bg-surface: #11151f;
+  --bg-raised: #171c28;
+  --bg-sunken: #070910;
+  --border: #232a3a;
+  --border-strong: #34405a;
+  --text-1: #e8ecf4;
+  --text-2: #a3adc2;
+  --text-3: #7c869d;
+  /* Text on the accent / state fills (the single filled button uses dark text). */
+  --text-on-accent: #0a0d14;
+
+  /* ---- 2.2 State colours ---------------------------------------------------------------- */
+  --sync: #3ddc97;
+  --sync-soft: rgba(61, 220, 151, 0.14);
+  --drift: #ff5f57;
+  --drift-soft: rgba(255, 95, 87, 0.14);
+  --warn: #f5b544;
+  --warn-soft: rgba(245, 181, 68, 0.14);
+  --ai: #8b9dff;
+  --ai-soft: rgba(139, 157, 255, 0.14);
+  --paypal: #4c8dff;
+  --paypal-soft: rgba(76, 141, 255, 0.14);
+
+  /* ---- 2.3 Accent and the filament ------------------------------------------------------ */
+  --accent: #8b9dff;
+  /* Hover / pressed state for the accent (not in the design file; a lighter step of --accent). */
+  --accent-strong: #aebaff;
+  --filament-gradient: linear-gradient(90deg, #4c8dff 0%, #8b9dff 50%, #3ddc97 100%);
+  --filament-glow: 0 0 12px rgba(139, 157, 255, 0.45);
+  --filament-width: 1.5px;
+  /* Hover tint for rows and menu items. */
+  --row-hover: var(--bg-raised);
+  /* Scrim behind the narrow-viewport Doctor drawer and dialogs. */
+  --scrim: rgba(7, 9, 16, 0.72);
+
+  /* Chart series: neutral-to-accent family so state colours stay meaningful (rule 2.2). */
+  --chart-1: #8b9dff;
+  --chart-2: #4c8dff;
+  --chart-3: #a3adc2;
+  --chart-4: #34405a;
+  --chart-5: #7c869d;
+
+  /* ---- 3. Typography --------------------------------------------------------------------- */
+  /* --font-fraunces / --font-geist / --font-jetbrains-mono are set by next/font in app/layout.tsx */
+  --font-display-stack: var(--font-fraunces), Georgia, 'Times New Roman', serif;
+  --font-ui-stack: var(--font-geist), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-data-stack: var(--font-jetbrains-mono), ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 14px;
+  --fs-md: 16px;
+  --fs-lg: 20px;
+  --fs-xl: 28px;
+  --fs-display: 44px;
+  --leading-body: 1.5;
+  --leading-display: 1.15;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* ---- 4. Shape, spacing and depth ------------------------------------------------------ */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-card: 12px;
+  --radius-input: 8px;
+  --radius-pill: 999px;
+
+  --shadow-popover: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-none: none;
+
+  --grid-row-height: 48px;
+  --grid-header-height: 40px;
+  --topbar-height: 56px;
+
+  /* ---- 7. Motion -------------------------------------------------------------------------- */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --dur-medium: 300ms;
+  --dur-slow: 500ms;
+  --dur-heal: 600ms;
+  --stagger-load: 40ms;
+  --stagger-check: 120ms;
+  --sweep-loop: 6s;
+  --breathe-loop: 8s;
+
+  /* ---- Focus ring (2.5) ------------------------------------------------------------------- */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--accent);
+}
+
+/* Reserved for a future light theme (2.4). Intentionally empty. */
+:root[data-theme='light'] {
+  /* intentionally empty */
+}

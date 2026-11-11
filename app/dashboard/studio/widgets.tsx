@@ -266,26 +266,30 @@ function TetherValueWidget(params: AgWidgetParams<AgValueWidget>) {
 }
 
 const localOrdersGridTheme = themeQuartz.withParams({
-  backgroundColor: 'var(--canvas)',
-  foregroundColor: 'var(--ink)',
-  cellTextColor: 'var(--ink)',
-  borderColor: 'var(--canvas-soft)',
-  rowBorder: { color: 'var(--canvas-soft)', width: 1 },
+  browserColorScheme: 'dark',
+  accentColor: 'var(--accent)',
+  backgroundColor: 'var(--bg-surface)',
+  foregroundColor: 'var(--text-1)',
+  cellTextColor: 'var(--text-1)',
+  borderColor: 'var(--border)',
+  rowBorder: { color: 'var(--border)', width: 1 },
   columnBorder: false,
   headerColumnBorder: false,
-  headerRowBorder: { color: 'var(--canvas-soft)', width: 1 },
+  headerRowBorder: { color: 'var(--border)', width: 1 },
   wrapperBorder: false,
-  headerBackgroundColor: 'var(--canvas-soft)',
-  headerTextColor: 'var(--mute)',
-  headerFontFamily: 'var(--font-sans-stack)',
+  headerBackgroundColor: 'var(--bg-sunken)',
+  headerTextColor: 'var(--text-2)',
+  headerFontFamily: 'var(--font-ui-stack)',
   headerFontSize: 12,
   headerFontWeight: 600,
-  fontFamily: 'var(--font-sans-stack)',
+  iconColor: 'var(--text-2)',
+  fontFamily: 'var(--font-ui-stack)',
   fontSize: 14,
-  rowHeight: 52,
+  rowHeight: 48,
   cellHorizontalPaddingScale: 0.75,
-  rowHoverColor: 'var(--primary-pale)',
-  valueChangeValueHighlightBackgroundColor: 'color-mix(in srgb, var(--positive) 22%, transparent)',
+  rowHoverColor: 'var(--bg-raised)',
+  selectedRowBackgroundColor: 'var(--ai-soft)',
+  valueChangeValueHighlightBackgroundColor: 'var(--sync-soft)',
 });
 
 function OrderIdCellRenderer({ value }: CustomCellRendererProps) {
@@ -627,8 +631,8 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
         suppressFieldDotNotation={true}
         suppressCellFocus={false}
         suppressDragLeaveHidesColumns={true}
-        headerHeight={42}
-        rowHeight={52}
+        headerHeight={40}
+        rowHeight={48}
         animateRows={!prefersReducedMotion}
         cellFlashDuration={prefersReducedMotion ? 0 : 900}
         cellFadeDuration={prefersReducedMotion ? 0 : 1200}

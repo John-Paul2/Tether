@@ -1,68 +1,74 @@
 @import "tailwindcss";
+@import "./tokens.css";
 
 /*
- * Tether design tokens (DESIGN.md): single source of truth for the dashboard shell,
- * Doctor & Demo Controls panels, and AG Studio theme (app/dashboard/studio/theme.ts).
- * Restyling later is a one-file change here.
+ * Tailwind bridge for the Tether Noir tokens in app/tokens.css (the only file with literal
+ * values). New components use the Noir names (bg-surface, text-fg-2, text-drift, border-line,
+ * font-data …).
+ *
+ * LEGACY ALIASES: the pre-Noir names (canvas, ink, primary, positive …) are kept as aliases that
+ * point at Noir tokens so every existing component turns dark at once. They are removed once the
+ * components are restyled in later phases.
  */
 :root {
-  --primary: #0070E0;
-  --on-primary: #FFFFFF;
-  --primary-active: #003087;
-  --primary-light: #66B2FF;
-  --primary-neutral: #B9D6F7;
-  --primary-pale: #E3EFFC;
-  --ink: #0B1426;
-  --ink-deep: #003087;
-  --body: #454B55;
-  --mute: #6B7380;
-  --canvas: #FFFFFF;
-  --canvas-soft: #E9EEF5;
-  --positive: #2EAD4B;
-  --positive-deep: #054D28;
-  --positive-bg: #E3F6E8;
-  --warning: #FFD11A;
-  --warning-deep: #B86700;
-  --warning-content: #4A3B1C;
-  --warning-bg: #FFF6CC;
-  --negative: #D03238;
-  --negative-deep: #A72027;
-  --negative-bg: #320707;
-
-  /* Chart series: blue family first, peach only for contrasting 5th series */
-  --chart-1: #0070E0;
-  --chart-2: #003087;
-  --chart-3: #009CDE;
-  --chart-4: #8FB8E8;
-  --chart-5: #FFC091;
-
-  /* Font stacks loaded via next/font/google in app/layout.tsx */
-  --font-display-stack: var(--font-manrope), var(--font-inter), system-ui, sans-serif;
-  --font-sans-stack: var(--font-inter), system-ui, sans-serif;
-
-  /* Elevation: subtle card shadow & 16px card radius */
-  --card-shadow: 0 1px 3px rgba(11, 20, 38, 0.05), 0 1px 2px rgba(11, 20, 38, 0.04);
-  --card-shadow-hover: 0 4px 12px rgba(11, 20, 38, 0.07);
-
-  /* Legacy aliases mapped to Tether tokens */
-  --pp-navy: var(--ink-deep);
-  --pp-blue: var(--primary);
-  --pp-blue-dark: var(--primary-active);
-  --pp-sky: var(--chart-3);
-  --pp-highlight: var(--primary-pale);
-  --pp-canvas: var(--canvas-soft);
-  --pp-surface: var(--canvas);
-  --pp-border: var(--canvas-soft);
-  --pp-gridline: var(--canvas-soft);
-  --pp-ink: var(--ink);
-  --pp-muted: var(--mute);
-  --pp-success: var(--positive);
-  --pp-warning: var(--warning-deep);
-  --pp-danger: var(--negative);
-  --pp-font: var(--font-sans-stack);
+  --primary: var(--accent);
+  --on-primary: var(--text-on-accent);
+  --primary-active: var(--accent-strong);
+  --primary-light: var(--accent-strong);
+  --primary-neutral: var(--border-strong);
+  --primary-pale: var(--ai-soft);
+  --ink: var(--text-1);
+  --ink-deep: var(--text-1);
+  --body: var(--text-2);
+  --mute: var(--text-3);
+  --canvas: var(--bg-surface);
+  --canvas-soft: var(--border);
+  --positive: var(--sync);
+  --positive-deep: var(--sync);
+  --positive-bg: var(--sync-soft);
+  --warning: var(--warn-soft);
+  --warning-deep: var(--warn);
+  --warning-content: var(--warn);
+  --warning-bg: var(--bg-raised);
+  --negative: var(--drift);
+  --negative-deep: var(--drift);
+  --negative-bg: var(--drift);
+  --font-sans-stack: var(--font-ui-stack);
+  --card-shadow: var(--shadow-none);
+  --card-shadow-hover: var(--shadow-none);
 }
 
 @theme inline {
+  /* Noir names */
+  --color-page: var(--bg-page);
+  --color-surface: var(--bg-surface);
+  --color-raised: var(--bg-raised);
+  --color-sunken: var(--bg-sunken);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-fg: var(--text-1);
+  --color-fg-2: var(--text-2);
+  --color-fg-3: var(--text-3);
+  --color-on-accent: var(--text-on-accent);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-sync: var(--sync);
+  --color-sync-soft: var(--sync-soft);
+  --color-drift: var(--drift);
+  --color-drift-soft: var(--drift-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-ai: var(--ai);
+  --color-ai-soft: var(--ai-soft);
+  --color-paypal: var(--paypal);
+  --color-paypal-soft: var(--paypal-soft);
+
+  --font-display: var(--font-display-stack);
+  --font-sans: var(--font-ui-stack);
+  --font-mono: var(--font-data-stack);
+  --font-data: var(--font-data-stack);
+
+  /* Legacy aliases (see note above) */
   --color-primary: var(--primary);
   --color-on-primary: var(--on-primary);
   --color-primary-active: var(--primary-active);
@@ -90,41 +96,77 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+}
 
-  --color-pp-navy: var(--ink-deep);
-  --color-pp-blue: var(--primary);
-  --color-pp-blue-dark: var(--primary-active);
-  --color-pp-sky: var(--chart-3);
-  --color-pp-highlight: var(--primary-pale);
-  --color-pp-canvas: var(--canvas-soft);
-  --color-pp-surface: var(--canvas);
-  --color-pp-border: var(--canvas-soft);
-  --color-pp-ink: var(--ink);
-  --color-pp-muted: var(--mute);
-  --color-pp-success: var(--positive);
-  --color-pp-warning: var(--warning-deep);
-  --color-pp-danger: var(--negative);
-
-  --font-display: var(--font-display-stack);
-  --font-sans: var(--font-sans-stack);
-  --font-paypal: var(--font-sans-stack);
+html {
+  background: var(--bg-page);
 }
 
 body {
-  background: var(--canvas-soft);
-  color: var(--ink);
-  font-family: var(--font-sans-stack);
+  background: var(--bg-page);
+  color: var(--text-1);
+  font-family: var(--font-ui-stack);
+  font-size: var(--fs-base);
+  line-height: var(--leading-body);
 }
 
-/* Tabular figures for numbers in tables and KPIs (DESIGN.md) */
+/* Type scale (design file 3): 12 / 13 / 14 / 16 / 20 / 28 / 44 */
+.type-display {
+  font-family: var(--font-display-stack);
+  font-size: var(--fs-display);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-display);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.type-h1 {
+  font-family: var(--font-display-stack);
+  font-size: var(--fs-xl);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-display);
+}
+.type-h2 {
+  font-family: var(--font-ui-stack);
+  font-size: var(--fs-lg);
+  font-weight: var(--weight-semibold);
+  line-height: 1.3;
+}
+.type-h3 {
+  font-family: var(--font-ui-stack);
+  font-size: var(--fs-md);
+  font-weight: var(--weight-semibold);
+  line-height: 1.4;
+}
+.type-body {
+  font-size: var(--fs-base);
+  line-height: var(--leading-body);
+}
+.type-small {
+  font-size: var(--fs-sm);
+  line-height: var(--leading-body);
+}
+.type-caption {
+  font-size: var(--fs-xs);
+  line-height: var(--leading-body);
+}
+.type-data {
+  font-family: var(--font-data-stack);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tabular figures for numbers in tables and KPIs */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
-/* Visible 2px focus ring in primary-active with 2px offset (DESIGN.md) */
+/* 2.5: visible focus ring, 2px accent outline with 2px offset */
 *:focus-visible {
-  outline: 2px solid var(--primary-active);
-  outline-offset: 2px;
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+::selection {
+  background: var(--ai-soft);
+  color: var(--text-1);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -144,37 +186,39 @@ body {
   min-height: 320px;
 }
 
-/* Subtle shadows, 16px radius, and live KPI accent border on Studio widget cards */
+/* Cards: 12px radius, 1px border, elevation by surface not shadow (design file 4) */
 .ag-studio-layout-widget-container {
-  border-radius: 16px;
+  border-radius: var(--radius-card);
   box-shadow: var(--card-shadow);
-  transition: border-color 200ms ease, box-shadow 200ms ease;
+  transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
 }
 
 .ag-studio-layout-widget-container:has([data-kpi-accent='positive']) {
-  border-top: 3px solid var(--positive);
+  border-top: 2px solid var(--sync);
 }
 
 .ag-studio-layout-widget-container:has([data-kpi-accent='negative']) {
-  border-top: 3px solid var(--negative);
+  border-top: 2px solid var(--drift);
 }
 
 .ag-studio-layout-widget-container:has([data-kpi-accent='warning']) {
-  border-top: 3px solid var(--warning-deep);
+  border-top: 2px solid var(--warn);
 }
 
-/* Visible flash highlight when Local Status flips CREATED -> PAID */
+/* 6.5: cell change flash so CREATED -> PAID flashes --sync */
 .tether-local-orders-grid .ag-cell-data-changed {
-  background-color: color-mix(in srgb, var(--positive) 24%, transparent) !important;
-  transition: background-color 600ms ease;
+  background-color: var(--sync-soft) !important;
+  transition: background-color var(--dur-heal) var(--ease);
 }
 
+/* 6.5: drifting row = --drift-soft fill with a 2px --drift left border (inset, no layout shift) */
 .tether-local-orders-grid .ag-row.tether-drifting-row {
-  background-color: color-mix(in srgb, var(--negative) 6%, var(--canvas));
+  background-color: var(--drift-soft);
+  box-shadow: inset 2px 0 0 var(--drift);
 }
 
 .tether-local-orders-grid .ag-row.tether-drifting-row:hover {
-  background-color: color-mix(in srgb, var(--negative) 10%, var(--canvas));
+  background-color: color-mix(in srgb, var(--drift-soft) 100%, var(--bg-raised));
 }
 
 @media (prefers-reduced-motion: reduce) {
