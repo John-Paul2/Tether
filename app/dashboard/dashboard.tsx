@@ -22,6 +22,7 @@ import {
 } from './components/dialogs';
 import { DoctorPanel } from './components/doctor-panel';
 import { EmptyData } from './components/empty-data';
+import { MoneyBox } from './components/money-box';
 import { ReconciliationStrip } from './components/reconciliation-strip';
 import {
   blankReport,
@@ -72,6 +73,10 @@ export function Dashboard(props: DashboardProps) {
 
   const fallbackReport = defaultReport();
   const fallbackPages = pagesFor(fallbackReport);
+  const initialSelectedOrder = props.data.local_orders[0] ?? null;
+  const initialSelectedDrifting = Boolean(
+    initialSelectedOrder && props.data.drift.some((d) => d.order_id === initialSelectedOrder.order_id),
+  );
 
   return (
     <AppShell
@@ -114,6 +119,8 @@ export function Dashboard(props: DashboardProps) {
         <DoctorPanel
           initialDrift={props.data.drift}
           dropWebhooks={props.data.dropWebhooks}
+          selectedOrder={initialSelectedOrder}
+          isSelectedDrifting={initialSelectedDrifting}
           onHealedOrUpdated={() => {}}
         />
       }
@@ -132,6 +139,7 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
   const [history, setHistory] = useState<StudioHistory>(NO_HISTORY);
   const [mode, setMode] = useState<AgStudioMode>('view');
   const [dialog, setDialog] = useState<DashboardDialog>(null);
+  const [manualSelectedOrderId, setManualSelectedOrderId] = useState<string | null>(null);
   const [recentlyHealedOrderId, setRecentlyHealedOrderId] = useState<string | null>(null);
   const healResetTimerRef = useRef<number | null>(null);
 
@@ -145,6 +153,31 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
       ? dropOverride.value
       : data.dropWebhooks;
 
+  const selectedOrderId = useMemo(() => {
+    if (
+      manualSelectedOrderId &&
+      (data.local_orders.some((o) => o.order_id === manualSelectedOrderId) ||
+        data.drift.some((d) => d.order_id === manualSelectedOrderId))
+    ) {
+      return manualSelectedOrderId;
+    }
+    return data.local_orders[0]?.order_id ?? data.drift[0]?.order_id ?? null;
+  }, [manualSelectedOrderId, data.local_orders, data.drift]);
+
+  const selectedOrder = useMemo(
+    () =>
+      selectedOrderId
+        ? (data.local_orders.find((o) => o.order_id === selectedOrderId) ?? null)
+        : null,
+    [data.local_orders, selectedOrderId],
+  );
+
+  const isSelectedDrifting = Boolean(
+    selectedOrderId &&
+      data.drift.some((d) => d.order_id === selectedOrderId) &&
+      recentlyHealedOrderId !== selectedOrderId,
+  );
+
   const { reports } = store;
   const saved = findReport(reports, store.activeId) ?? reports[0];
   const [initialState] = useState(() => reportState.withFiltersPanelFor('view', saved.state));
@@ -152,7 +185,14 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
   const studioData = useMemo(() => buildStudioData(data), [data]);
   const ai = useMemo(() => (aiModels?.length ? buildAi(aiModels) : undefined), [aiModels]);
   const tetherWidgets = useMemo(() => createTetherWidgets(), []);
-  const studioContextValue = useMemo(() => ({ data }), [data]);
+  const studioContextValue = useMemo(
+    () => ({
+      data,
+      selectedOrderId,
+      onSelectOrder: setManualSelectedOrderId,
+    }),
+    [data, selectedOrderId],
+  );
 
   useEffect(() => {
     return () => {
@@ -352,6 +392,8 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
         <DoctorPanel
           initialDrift={data.drift}
           dropWebhooks={dropWebhooks}
+          selectedOrder={selectedOrder}
+          isSelectedDrifting={isSelectedDrifting}
           onHealSucceeded={handleHealSucceeded}
           onHealedOrUpdated={() => {
             router.refresh();
@@ -360,13 +402,22 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
       }
     >
       {showReconciliationStrip && (
-        <ReconciliationStrip
-          drift={data.drift}
-          localOrders={data.local_orders}
-          webhookEvents={data.webhook_events}
-          paypalStatus={data.paypalStatus}
-          recentlyHealedOrderId={recentlyHealedOrderId}
-        />
+        <div className="grid grid-cols-1 gap-4 px-4 pt-4 lg:grid-cols-[minmax(240px,288px)_minmax(0,1fr)]">
+          <MoneyBox
+            drift={data.drift}
+            selectedOrder={selectedOrder}
+            totalOrders={data.local_orders.length}
+            recentlyHealedOrderId={recentlyHealedOrderId}
+          />
+          <ReconciliationStrip
+            drift={data.drift}
+            localOrders={data.local_orders}
+            webhookEvents={data.webhook_events}
+            paypalStatus={data.paypalStatus}
+            selectedOrderId={selectedOrderId}
+            recentlyHealedOrderId={recentlyHealedOrderId}
+          />
+        </div>
       )}
 
       <div
@@ -380,6 +431,7 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
                 style={{ height: '100%', width: '100%' }}
                 theme={agStudioTetherTheme}
                 widgets={tetherWidgets}
+                localeText={{ widgetOverlayNoData: 'Not enough data yet.' }}
                 layout={{ widgetBorderEnabled: true, minWidth: 320 }}
                 panels={{
                   view: { left: [], right: [] },

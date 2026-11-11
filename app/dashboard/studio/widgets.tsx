@@ -13,6 +13,7 @@ import {
   AllCommunityModule,
   themeQuartz,
   type ColDef,
+  type GridApi,
   type RowClassParams,
   type ValueFormatterParams,
 } from 'ag-grid-community';
@@ -20,15 +21,23 @@ import { AgGridReact, type CustomCellRendererProps } from 'ag-grid-react';
 import type { AgValueWidget, AgWidgetField, AgWidgetParams } from 'ag-studio';
 import { createWidgets, GridWidget, type AgGridWidgetProps } from 'ag-studio-react';
 import type { TetherData } from '@/lib/tether-data';
+import { CheckIcon, CopyIcon } from '../components/ui/icons';
+import { StatusPill } from '../components/ui/status-pill';
 
 export type TetherStudioContextValue = {
   data: TetherData;
+  selectedOrderId: string | null;
+  onSelectOrder: (orderId: string) => void;
 };
 
 export const TetherStudioContext = createContext<TetherStudioContextValue | null>(null);
 
+function useTetherStudioContext(): TetherStudioContextValue | null {
+  return useContext(TetherStudioContext);
+}
+
 function useTetherStudioData(): TetherData | null {
-  return useContext(TetherStudioContext)?.data ?? null;
+  return useTetherStudioContext()?.data ?? null;
 }
 
 const usdDecimals = new Intl.NumberFormat('en-US', {
@@ -144,8 +153,8 @@ function TetherValueWidget(params: AgWidgetParams<AgValueWidget>) {
         className="flex h-full flex-col justify-between gap-2 px-4 py-3"
         aria-busy="true"
       >
-        <div className="h-10 w-28 animate-pulse rounded-[8px] bg-canvas-soft" />
-        <div className="h-5 w-24 animate-pulse rounded-full bg-canvas-soft" />
+        <div className="h-10 w-28 animate-pulse rounded-[var(--radius-input)] bg-raised" />
+        <div className="h-5 w-24 animate-pulse rounded-full bg-raised" />
       </div>
     );
   }
@@ -154,10 +163,10 @@ function TetherValueWidget(params: AgWidgetParams<AgValueWidget>) {
     return (
       <div
         data-kpi-accent="warning"
-        className="flex h-full flex-col justify-center gap-1 px-4 py-3 text-xs text-warning-content"
+        className="flex h-full flex-col justify-center gap-1 px-4 py-3 text-xs text-warn"
       >
         <p className="font-semibold">Metric unavailable</p>
-        <p className="truncate text-mute">{state.error}</p>
+        <p className="truncate text-fg-2">{state.error}</p>
       </div>
     );
   }
@@ -228,12 +237,6 @@ function TetherValueWidget(params: AgWidgetParams<AgValueWidget>) {
   }
 
   const isHero = isMoneyAtRisk;
-  const pillClass =
-    accent === 'negative'
-      ? 'border border-negative/25 bg-negative/10 text-negative-deep'
-      : 'bg-positive-bg text-positive-deep';
-  const dotClass = accent === 'negative' ? 'bg-negative' : 'bg-positive';
-
   const titleText = format?.title?.text || field.name;
 
   return (
@@ -243,23 +246,21 @@ function TetherValueWidget(params: AgWidgetParams<AgValueWidget>) {
       className="flex h-full flex-col justify-between gap-2 px-4 pb-3 pt-1"
     >
       <p
-        className={`font-display font-extrabold tracking-tight tabular-nums whitespace-nowrap ${
+        className={`font-display font-semibold tracking-tight tabular-nums whitespace-nowrap ${
           isHero
             ? 'text-[40px] leading-[44px]'
-            : 'text-[32px] leading-[38px] 2xl:text-[40px] 2xl:leading-[44px]'
-        } ${accent === 'negative' ? 'text-negative' : 'text-ink'}`}
+            : 'text-[30px] leading-[36px] 2xl:text-[36px] 2xl:leading-[40px]'
+        } ${accent === 'negative' ? 'text-drift' : 'text-fg'}`}
         title={`${titleText}: ${displayText}`}
       >
         {displayText}
       </p>
 
       <div className="flex items-center">
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold leading-4 ${pillClass}`}
-        >
-          <span className={`size-1.5 shrink-0 rounded-full ${dotClass}`} aria-hidden />
-          <span className="whitespace-nowrap">{statusNote}</span>
-        </span>
+        <StatusPill
+          tone={accent === 'negative' ? 'drift' : 'sync'}
+          label={statusNote}
+        />
       </div>
     </div>
   );
@@ -308,11 +309,14 @@ function OrderIdCellRenderer({ value }: CustomCellRendererProps) {
     }
   };
 
-  if (!text) return <span className="text-mute">—</span>;
+  if (!text) return <span className="text-fg-3">—</span>;
 
   return (
     <div className="group flex h-full w-full items-center justify-between gap-2">
-      <span className="font-mono text-sm font-medium text-ink select-all whitespace-nowrap">
+      <span
+        className="truncate font-mono text-sm font-medium text-fg select-all whitespace-nowrap"
+        title={text}
+      >
         {text}
       </span>
       <button
@@ -320,13 +324,13 @@ function OrderIdCellRenderer({ value }: CustomCellRendererProps) {
         onClick={(e) => void handleCopy(e)}
         aria-label={`Copy order ID ${text}`}
         title={copied ? 'Copied order ID' : 'Copy order ID'}
-        className={`inline-flex shrink-0 cursor-pointer items-center justify-center rounded-[8px] border px-2 py-0.5 text-xs font-semibold leading-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active ${
+        className={`inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[var(--radius-input)] border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
           copied
-            ? 'border-positive/40 bg-positive-bg text-positive-deep'
-            : 'border-canvas-soft bg-canvas text-mute hover:border-primary/40 hover:bg-primary-pale hover:text-primary-active'
+            ? 'border-sync/40 bg-sync-soft text-sync'
+            : 'border-line bg-sunken text-fg-2 hover:border-accent/50 hover:bg-ai-soft hover:text-accent'
         }`}
       >
-        {copied ? 'Copied' : 'Copy'}
+        {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
       </button>
     </div>
   );
@@ -334,57 +338,35 @@ function OrderIdCellRenderer({ value }: CustomCellRendererProps) {
 
 function LocalStatusCellRenderer({ value }: CustomCellRendererProps) {
   const status = String(value ?? '');
-  const isPaid = status === 'PAID';
-
+  if (!status) return <span className="text-fg-3">—</span>;
   return (
     <div className="flex h-full items-center">
-      <span
-        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold leading-4 ${
-          isPaid
-            ? 'bg-positive-bg text-positive-deep'
-            : 'bg-canvas-soft text-body'
-        }`}
-      >
-        <span
-          className={`size-1.5 shrink-0 rounded-full ${isPaid ? 'bg-positive' : 'bg-mute'}`}
-          aria-hidden
-        />
-        {status || '—'}
-      </span>
+      <StatusPill variant={status === 'PAID' ? 'PAID' : 'CREATED'} />
     </div>
   );
 }
 
 function DriftStatusCellRenderer({ value }: CustomCellRendererProps) {
   const isDrifting = Boolean(value);
-
   return (
     <div className="flex h-full items-center">
-      <span
-        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold leading-4 ${
-          isDrifting
-            ? 'border border-negative/30 bg-negative/10 text-negative-deep'
-            : 'bg-positive-bg text-positive-deep'
-        }`}
-      >
-        <span
-          className={`size-1.5 shrink-0 rounded-full ${isDrifting ? 'bg-negative' : 'bg-positive'}`}
-          aria-hidden
-        />
-        {isDrifting ? 'Drift' : 'In sync'}
-      </span>
+      <StatusPill variant={isDrifting ? 'Drift' : 'In sync'} />
     </div>
   );
 }
 
 function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
   const { dataMapping, sort, widgetApi } = params;
-  const tetherData = useTetherStudioData();
+  const studioCtx = useTetherStudioContext();
+  const tetherData = studioCtx?.data ?? null;
+  const selectedOrderId = studioCtx?.selectedOrderId ?? null;
+  const onSelectOrder = studioCtx?.onSelectOrder;
   const fields = useMemo(() => dataMapping.cols ?? [], [dataMapping.cols]);
   const prefersReducedMotion = usePrefersReducedMotion();
   const dataVersion = tetherData?.asOf ?? '';
 
   const hasLoadedRef = useRef(false);
+  const gridApiRef = useRef<GridApi<Record<string, unknown>> | null>(null);
 
   const [state, setState] = useState<{
     loading: boolean;
@@ -395,6 +377,10 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
     error: null,
     rows: [],
   });
+
+  useEffect(() => {
+    gridApiRef.current?.redrawRows();
+  }, [selectedOrderId]);
 
   const fieldById = useMemo(() => {
     const map = new Map<string, AgWidgetField>();
@@ -476,8 +462,10 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
         return {
           ...base,
           headerName: 'Order ID',
-          minWidth: 205,
-          flex: 1.35,
+          pinned: 'left',
+          lockPinned: true,
+          width: 245,
+          minWidth: 225,
           cellRenderer: OrderIdCellRenderer,
         };
       }
@@ -486,8 +474,8 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
         return {
           ...base,
           headerName: 'Local Status',
-          minWidth: 112,
-          flex: 0.85,
+          minWidth: 128,
+          flex: 0.9,
           enableCellChangeFlash: true,
           cellRenderer: LocalStatusCellRenderer,
         };
@@ -497,9 +485,10 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
         return {
           ...base,
           headerName: 'Amount',
-          minWidth: 80,
-          flex: 0.58,
+          minWidth: 110,
+          flex: 0.72,
           type: 'numericColumn',
+          cellClass: 'font-mono tabular-nums',
           valueFormatter: (p: ValueFormatterParams) =>
             p.value == null || !Number.isFinite(Number(p.value))
               ? '—'
@@ -518,8 +507,8 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
         return {
           ...base,
           headerName: 'Has Open Drift',
-          minWidth: 170,
-          flex: 1.28,
+          minWidth: 176,
+          flex: 1.05,
           sort: 'desc',
           sortIndex: 0,
           enableCellChangeFlash: true,
@@ -532,8 +521,8 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
         return {
           ...base,
           headerName: 'Created At',
-          minWidth: 138,
-          flex: 1.05,
+          minWidth: 168,
+          flex: 1.1,
           sort: 'desc',
           sortIndex: 1,
           comparator: (a, b) =>
@@ -546,8 +535,8 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
         return {
           ...base,
           headerName: 'Updated At',
-          minWidth: 118,
-          flex: 0.88,
+          minWidth: 168,
+          flex: 1.1,
           comparator: (a, b) =>
             Date.parse(String(a ?? '')) - Date.parse(String(b ?? '')),
           valueFormatter: (p: ValueFormatterParams) => formatOrderDate(p.value),
@@ -573,8 +562,10 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
     () => ({
       'tether-drifting-row': (p: RowClassParams<Record<string, unknown>>) =>
         Boolean(p.data?.[driftingKey]),
+      'tether-selected-row': (p: RowClassParams<Record<string, unknown>>) =>
+        Boolean(selectedOrderId && String(p.data?.[orderIdKey] ?? '') === selectedOrderId),
     }),
-    [driftingKey],
+    [driftingKey, orderIdKey, selectedOrderId],
   );
 
   if (fields.length === 0) {
@@ -584,9 +575,9 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
   if (state.loading && !hasLoadedRef.current) {
     return (
       <div className="flex h-full min-h-[320px] flex-col gap-3 p-4" aria-busy="true">
-        <div className="h-9 w-full animate-pulse rounded-[8px] bg-canvas-soft" />
+        <div className="h-9 w-full animate-pulse rounded-[var(--radius-input)] bg-raised" />
         {[0, 1, 2, 3].map((idx) => (
-          <div key={idx} className="h-12 w-full animate-pulse rounded-[8px] bg-canvas-soft/60" />
+          <div key={idx} className="h-12 w-full animate-pulse rounded-[var(--radius-input)] bg-raised/70" />
         ))}
       </div>
     );
@@ -595,12 +586,12 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
   if (state.error && state.rows.length === 0) {
     return (
       <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 p-6 text-center">
-        <p className="text-base font-semibold text-ink">Unable to load local orders</p>
-        <p className="max-w-md text-sm text-body">{state.error}</p>
+        <p className="type-h3 text-fg">Unable to load local orders</p>
+        <p className="max-w-md text-sm text-fg-2">{state.error}</p>
         <button
           type="button"
           onClick={() => void loadRows()}
-          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-active focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active"
+          className="cursor-pointer rounded-full bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Retry
         </button>
@@ -611,9 +602,9 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
   if (state.rows.length === 0) {
     return (
       <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-2 p-6 text-center">
-        <p className="text-base font-semibold text-ink">No local orders yet</p>
-        <p className="max-w-md text-sm text-body">
-          Open Demo controls above to create a PayPal sandbox order and monitor its status transitions here.
+        <p className="type-h3 text-fg">Everything is in sync</p>
+        <p className="max-w-md text-sm text-fg-2">
+          No local orders yet. Open DEMO in the top bar to create a PayPal sandbox order and monitor its status here.
         </p>
       </div>
     );
@@ -636,6 +627,24 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
         animateRows={!prefersReducedMotion}
         cellFlashDuration={prefersReducedMotion ? 0 : 900}
         cellFadeDuration={prefersReducedMotion ? 0 : 1200}
+        onGridReady={(event) => {
+          gridApiRef.current = event.api;
+        }}
+        onRowClicked={(event) => {
+          const id = event.data?.[orderIdKey];
+          if (id != null && onSelectOrder) {
+            onSelectOrder(String(id));
+          }
+        }}
+        onCellKeyDown={(event) => {
+          const ev = event.event;
+          if (ev instanceof KeyboardEvent && ev.key === 'Enter') {
+            const id = event.data?.[orderIdKey];
+            if (id != null && onSelectOrder) {
+              onSelectOrder(String(id));
+            }
+          }
+        }}
         defaultColDef={{
           suppressMovable: true,
           resizable: true,

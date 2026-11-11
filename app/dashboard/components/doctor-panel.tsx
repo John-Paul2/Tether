@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { TetherDriftRow } from '@/lib/tether-data';
+import type { TetherDriftRow, TetherLocalOrderRow } from '@/lib/tether-data';
 import {
   AlertIcon,
   ArrowRightIcon,
@@ -9,6 +9,7 @@ import {
   RefreshIcon,
   StethoscopeIcon,
 } from './ui/icons';
+import { StatusPill } from './ui/status-pill';
 import { Badge, type BadgeTone, Button, IconButton } from './ui/ui';
 
 type DriftApiItem = {
@@ -144,14 +145,23 @@ function extractProposeHealConditions(
   return null;
 }
 
+function formatShortOrderId(orderId: string): string {
+  if (orderId.length <= 12) return orderId;
+  return `${orderId.slice(0, 6)}…${orderId.slice(-4)}`;
+}
+
 export function DoctorPanel({
   initialDrift,
   dropWebhooks,
+  selectedOrder,
+  isSelectedDrifting = false,
   onHealedOrUpdated,
   onHealSucceeded,
 }: {
   initialDrift: TetherDriftRow[];
   dropWebhooks: boolean;
+  selectedOrder?: TetherLocalOrderRow | null;
+  isSelectedDrifting?: boolean;
   onHealedOrUpdated: () => void;
   onHealSucceeded?: (outcome: { order_id: string; event_id: string | null }) => void;
 }) {
@@ -464,6 +474,50 @@ export function DoctorPanel({
             <RefreshIcon className={`size-4 ${loadingDrift ? 'animate-spin' : ''}`} />
           </IconButton>
         </div>
+
+        {selectedOrder && (
+          <div
+            data-testid="doctor-selected-order"
+            data-order-id={selectedOrder.order_id}
+            className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-input)] border border-line bg-sunken px-3 py-2 text-xs"
+          >
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="text-fg-3">Selected</span>
+              <code
+                className="font-mono font-medium text-fg tabular-nums"
+                title={selectedOrder.order_id}
+              >
+                {formatShortOrderId(selectedOrder.order_id)}
+              </code>
+              <span className="font-mono text-fg-2 tabular-nums">
+                ${Number(selectedOrder.amount).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <StatusPill
+                variant={
+                  isSelectedDrifting
+                    ? 'Drift'
+                    : selectedOrder.local_status === 'PAID'
+                      ? 'PAID'
+                      : 'CREATED'
+                }
+              />
+              {isSelectedDrifting && (
+                <button
+                  type="button"
+                  disabled={isInvestigating}
+                  onClick={() => void handleInvestigate(selectedOrder.order_id)}
+                  className="cursor-pointer rounded-full border border-accent/45 bg-ai-soft px-2.5 py-0.5 text-xs font-medium text-accent transition-colors hover:border-accent hover:bg-ai-soft/80 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isInvestigating && investigatingOrderId === selectedOrder.order_id
+                    ? 'Investigating…'
+                    : 'Investigate'}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Refreshing state banner */}
         {loadingDrift && !paypalSlowNotice && (

@@ -18,7 +18,8 @@ export type SavedReport = {
 
 export type StoredReports = { reports: SavedReport[]; activeId: string };
 
-const STORAGE_KEY = 'tether:reports:v1';
+const STORAGE_KEY = 'tether:reports:v2';
+const LEGACY_STORAGE_KEY = 'tether:reports:v1';
 
 export const BUILT_IN_ID = 'tether-overview';
 
@@ -85,15 +86,27 @@ export const initialReports = (): StoredReports => ({ reports: [defaultReport()]
 export function loadReports(): StoredReports {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return initialReports();
-    const stored = JSON.parse(raw) as StoredReports;
-    // The built-in report is always listed first, from code unless a saved copy exists.
-    const reports = [
-      stored.reports.find((r) => r.id === BUILT_IN_ID) ?? defaultReport(),
-      ...stored.reports.filter((r) => r.id !== BUILT_IN_ID),
-    ];
-    const activeId = reports.some((r) => r.id === stored.activeId) ? stored.activeId : BUILT_IN_ID;
-    return { reports, activeId };
+    if (raw) {
+      const stored = JSON.parse(raw) as StoredReports;
+      // The built-in report is always listed first, from code unless a saved copy exists.
+      const reports = [
+        stored.reports.find((r) => r.id === BUILT_IN_ID) ?? defaultReport(),
+        ...stored.reports.filter((r) => r.id !== BUILT_IN_ID),
+      ];
+      const activeId = reports.some((r) => r.id === stored.activeId) ? stored.activeId : BUILT_IN_ID;
+      return { reports, activeId };
+    }
+
+    const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacyRaw) {
+      const legacy = JSON.parse(legacyRaw) as StoredReports;
+      const customReports = legacy.reports.filter((r) => r.id !== BUILT_IN_ID);
+      const reports = [defaultReport(), ...customReports];
+      const activeId = reports.some((r) => r.id === legacy.activeId) ? legacy.activeId : BUILT_IN_ID;
+      return { reports, activeId };
+    }
+
+    return initialReports();
   } catch {
     return initialReports();
   }

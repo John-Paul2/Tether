@@ -211,14 +211,41 @@ body {
   transition: background-color var(--dur-heal) var(--ease);
 }
 
+.tether-local-orders-grid .ag-row {
+  cursor: pointer;
+}
+
+/* 6.5: selected row = 2px left border in --accent and faint --ai-soft fill */
+.tether-local-orders-grid .ag-row.tether-selected-row {
+  background-color: var(--ai-soft);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.tether-local-orders-grid .ag-row.tether-selected-row:hover {
+  background-color: color-mix(in srgb, var(--ai-soft) 100%, var(--bg-raised));
+}
+
 /* 6.5: drifting row = --drift-soft fill with a 2px --drift left border (inset, no layout shift) */
 .tether-local-orders-grid .ag-row.tether-drifting-row {
   background-color: var(--drift-soft);
   box-shadow: inset 2px 0 0 var(--drift);
 }
 
+.tether-local-orders-grid .ag-row.tether-drifting-row.tether-selected-row {
+  background-color: var(--drift-soft);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
 .tether-local-orders-grid .ag-row.tether-drifting-row:hover {
   background-color: color-mix(in srgb, var(--drift-soft) 100%, var(--bg-raised));
+}
+
+/* Calm empty overlay inside AG Studio widgets */
+.ag-studio-widget-no-data {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  border-color: var(--border) !important;
+  border-radius: var(--radius-input);
 }
 
 @media (prefers-reduced-motion: reduce) {
