@@ -172,7 +172,7 @@ export function MenuItem({
     <button
       type="button"
       role="menuitem"
-      className={`block w-full px-4 py-2 text-left text-sm font-semibold hover:bg-primary-pale ${
+      className={`block w-full px-4 py-2 text-left text-sm font-semibold hover:bg-primary-pale focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary-active ${
         danger ? 'text-negative' : 'text-ink'
       }`}
       {...props}

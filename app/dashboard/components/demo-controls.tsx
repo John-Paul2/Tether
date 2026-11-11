@@ -220,17 +220,17 @@ export function DemoControlsPanel({
     <section
       ref={containerRef}
       aria-label="Demo controls"
-      className="relative mx-5 mt-3"
+      className="relative mx-4 mt-2"
     >
       {/* Slim collapsed bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-[24px] bg-warning-bg px-3.5 py-2 text-warning-content">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-[16px] bg-warning-bg px-4 py-2 text-warning-content shadow-[var(--card-shadow)]">
         <div className="flex items-center gap-2">
           <button
             type="button"
             aria-expanded={open}
             aria-controls="demo-controls-popover"
             onClick={() => setOpen((current) => !current)}
-            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-[24px] bg-warning px-3 py-1.5 text-xs font-semibold text-warning-content transition-colors hover:brightness-95 sm:text-sm"
+            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-[16px] bg-warning px-3 py-1.5 text-xs font-semibold text-warning-content transition-colors hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active sm:text-sm"
           >
             <AlertIcon className="size-4 shrink-0" />
             <span>Demo controls</span>
@@ -244,7 +244,8 @@ export function DemoControlsPanel({
           </span>
         </div>
 
-        <div className="flex items-center">
+        {/* TODO(demo-controls): Place a one-click "Load a drifting order" button next to the webhook switch indicator in a later step. */}
+        <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-canvas px-2.5 py-1 text-xs font-semibold text-ink">
             <span className="text-body">Simulate dropped webhooks:</span>
             <span
@@ -272,7 +273,7 @@ export function DemoControlsPanel({
           id="demo-controls-popover"
           role="region"
           aria-label="Demo controls drawer"
-          className="absolute left-0 right-0 top-full z-40 mt-2 max-h-[80vh] overflow-y-auto rounded-[24px] border border-warning-deep/30 bg-warning-bg p-5 text-warning-content"
+          className="absolute left-0 right-0 top-full z-40 mt-2 max-h-[80vh] overflow-y-auto rounded-[16px] border border-warning-deep/30 bg-warning-bg p-4 text-warning-content shadow-[var(--card-shadow-hover)]"
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1.5">
@@ -312,7 +313,7 @@ export function DemoControlsPanel({
                   aria-label="Simulate dropped webhooks"
                   disabled={togglingFault}
                   onClick={handleToggleFault}
-                  className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer items-center rounded-full px-1 transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                  className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer items-center rounded-full px-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active disabled:cursor-not-allowed disabled:opacity-60 ${
                     dropWebhooks ? 'bg-negative' : 'bg-canvas-soft'
                   }`}
                 >
@@ -331,7 +332,7 @@ export function DemoControlsPanel({
                 type="button"
                 aria-label="Close Demo controls"
                 onClick={() => setOpen(false)}
-                className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-canvas/80 text-warning-content transition-colors hover:bg-canvas"
+                className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-canvas/80 text-warning-content transition-colors hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active"
               >
                 <CloseIcon className="size-4" />
               </button>

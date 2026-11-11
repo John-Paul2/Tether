@@ -19,22 +19,25 @@ export function SidebarSkeleton() {
 export function ContentSkeleton() {
   return (
     <>
-      <div className="border-b border-canvas-soft bg-canvas px-6 py-4">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="mt-2 h-8 w-48" />
-        <Skeleton className="mt-3 h-4 w-56" />
+      <div className="border-b border-canvas-soft bg-canvas px-6 py-3">
+        <Skeleton className="h-3 w-28" />
+        <Skeleton className="mt-2 h-7 w-40" />
+        <Skeleton className="mt-2 h-3 w-52" />
       </div>
-      <div className="grid flex-1 grid-cols-2 gap-4 p-4 sm:grid-cols-4 sm:grid-rows-[112px_280px_360px]" aria-hidden>
+      <div className="mx-4 mt-4 rounded-[16px] bg-canvas p-4 shadow-[var(--card-shadow)]" aria-hidden>
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-full max-w-xl rounded-full" />
+          <Skeleton className="h-9 w-full max-w-xl rounded-full" />
+        </div>
+      </div>
+      <div className="grid flex-1 grid-cols-2 gap-4 p-4 sm:grid-cols-4 sm:grid-rows-[136px_420px]" aria-hidden>
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="rounded-[24px] bg-canvas p-6">
+          <div key={i} className="rounded-[16px] bg-canvas p-4 shadow-[var(--card-shadow)]">
             <Skeleton className="h-4 w-24" />
-            <Skeleton className="mt-4 h-9 w-20" />
+            <Skeleton className="mt-4 h-10 w-24" />
           </div>
         ))}
-        <div className="col-span-2 rounded-[24px] bg-canvas p-6 sm:col-span-4">
-          <Skeleton className="h-full" />
-        </div>
-        <div className="col-span-2 rounded-[24px] bg-canvas p-6 sm:col-span-4">
+        <div className="col-span-2 rounded-[16px] bg-canvas p-4 shadow-[var(--card-shadow)] sm:col-span-4">
           <Skeleton className="h-full" />
         </div>
       </div>

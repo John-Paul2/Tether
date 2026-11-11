@@ -39,10 +39,10 @@ export function ReportHeader({
   onRefreshStudio?: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-canvas-soft bg-canvas px-6 py-4">
+    <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 border-b border-canvas-soft bg-canvas px-6 py-3">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-mute">{reportName}</p>
-        <h1 className="truncate font-display text-[28px] font-extrabold leading-[34px] text-ink">
+        <p className="truncate text-xs font-semibold text-mute">{reportName}</p>
+        <h1 className="truncate font-display text-2xl font-extrabold leading-8 text-ink">
           {pageTitle}
         </h1>
         <DataFreshness
@@ -131,7 +131,7 @@ function DataFreshness({
   };
 
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-mute">
+    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-mute">
       <span className="inline-flex items-center gap-1.5">
         <span
           className={`size-2 rounded-full ${
@@ -153,7 +153,7 @@ function DataFreshness({
         disabled={refreshing}
         aria-label="Refresh data"
         title="Refresh data"
-        className="inline-flex size-7 items-center justify-center rounded-full text-primary hover:bg-primary-pale disabled:text-mute"
+        className="inline-flex size-7 items-center justify-center rounded-full text-primary hover:bg-primary-pale focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active disabled:text-mute"
       >
         <RefreshIcon className={`size-4 ${refreshing ? 'animate-spin' : ''}`} />
       </button>

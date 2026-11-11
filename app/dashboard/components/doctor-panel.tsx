@@ -20,6 +20,14 @@ type DriftApiItem = {
   has_webhook_in_log: boolean;
 };
 
+type ProposeHealCondition = {
+  name?: string;
+  label?: string;
+  passed?: boolean;
+  ok?: boolean;
+  reason?: string;
+};
+
 type AgentTraceStep = {
   step: number;
   tool_call_id: string;
@@ -28,6 +36,8 @@ type AgentTraceStep = {
   result_summary: string;
   duration_ms: number;
   model_used: string;
+  conditions?: ProposeHealCondition[];
+  checks?: ProposeHealCondition[];
 };
 
 type AgentEvidenceItem = {
@@ -96,14 +106,54 @@ function confidenceTone(confidence: string): BadgeTone {
   return 'warning';
 }
 
+function extractResendEventId(
+  diagnosis: AgentResultPayload,
+  steps: AgentTraceStep[],
+): string | null {
+  const allSteps = diagnosis.trace?.length ? diagnosis.trace : steps;
+  const proposeStep = allSteps.find((s) => s.tool_name === 'propose_heal');
+  const proposeMatch = proposeStep?.result_summary?.match(/\bevent_id=(WH-[A-Za-z0-9-]+)\b/);
+  if (proposeMatch?.[1]) return proposeMatch[1];
+
+  const eventLogStep = allSteps.find((s) => s.tool_name === 'get_paypal_event_log');
+  const captureLogMatch = eventLogStep?.result_summary?.match(
+    /PAYMENT\.CAPTURE\.COMPLETED\((WH-[A-Za-z0-9-]+)\)/,
+  );
+  if (captureLogMatch?.[1]) return captureLogMatch[1];
+
+  const proseSources = [
+    diagnosis.recommended_action,
+    diagnosis.summary,
+    ...diagnosis.evidence.map((e) => e.claim),
+  ];
+  for (const text of proseSources) {
+    const match = text?.match(/\b(WH-[A-Za-z0-9-]+)\b/);
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
+
+function extractProposeHealConditions(
+  proposeStep: AgentTraceStep | undefined,
+): ProposeHealCondition[] | null {
+  if (!proposeStep) return null;
+  const rawList = proposeStep.conditions ?? proposeStep.checks;
+  if (Array.isArray(rawList) && rawList.length > 0) {
+    return rawList;
+  }
+  return null;
+}
+
 export function DoctorPanel({
   initialDrift,
   dropWebhooks,
   onHealedOrUpdated,
+  onHealSucceeded,
 }: {
   initialDrift: TetherDriftRow[];
   dropWebhooks: boolean;
   onHealedOrUpdated: () => void;
+  onHealSucceeded?: (outcome: { order_id: string; event_id: string | null }) => void;
 }) {
   const [manualDrift, setManualDrift] = useState<{
     source: TetherDriftRow[];
@@ -318,10 +368,13 @@ export function DoctorPanel({
         return;
       }
 
+      const outcomeOrderId = data.order_id ?? orderId;
+      const outcomeEventId = data.event_id ?? null;
+
       setHealOutcome({
         healed: true,
-        order_id: data.order_id ?? orderId,
-        event_id: data.event_id ?? null,
+        order_id: outcomeOrderId,
+        event_id: outcomeEventId,
         action: data.action ?? 'RESEND_WEBHOOK',
         result: data.result ?? 'healed',
         reason: data.reason ?? '',
@@ -329,6 +382,11 @@ export function DoctorPanel({
         before_status: beforeStatus,
         after_status: 'PAID',
         log_id: data.log_id ?? 0,
+      });
+
+      onHealSucceeded?.({
+        order_id: outcomeOrderId,
+        event_id: outcomeEventId,
       });
 
       // Refresh both the drift list in Doctor panel and the AG Studio dashboard data
@@ -374,17 +432,22 @@ export function DoctorPanel({
     return 'Disabled because server-side heal preconditions (propose_heal) returned safe_to_heal = false.';
   })();
 
+  const diagnosisSteps = diagnosis?.trace?.length ? diagnosis.trace : steps;
+  const proposeStep = diagnosisSteps.find((s) => s.tool_name === 'propose_heal');
+  const proposeConditions = extractProposeHealConditions(proposeStep);
+  const resendEventId = diagnosis ? extractResendEventId(diagnosis, diagnosisSteps) : null;
+
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       {/* Doctor panel header & drifting orders card */}
-      <div className="rounded-[24px] bg-canvas p-6 text-ink">
-        <div className="flex items-start justify-between gap-3">
+      <div className="rounded-[16px] bg-canvas p-6 text-ink shadow-[var(--card-shadow)]">
+        <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-pale text-primary">
               <StethoscopeIcon className="size-5" />
             </span>
             <div>
-              <h2 className="font-display text-[28px] font-extrabold leading-[34px] tracking-tight text-ink">
+              <h2 className="font-display text-2xl font-extrabold leading-8 tracking-tight text-ink">
                 Doctor panel
               </h2>
               <p className="text-xs text-mute">
@@ -401,6 +464,16 @@ export function DoctorPanel({
             <RefreshIcon className={`size-4 ${loadingDrift ? 'animate-spin' : ''}`} />
           </IconButton>
         </div>
+
+        {/* Refreshing state banner */}
+        {loadingDrift && !paypalSlowNotice && (
+          <div
+            role="status"
+            className="mt-4 rounded-[12px] bg-primary-pale/70 px-3.5 py-2 text-xs font-semibold text-primary-active"
+          >
+            Checking live PayPal sandbox order status…
+          </div>
+        )}
 
         {/* PayPal slow or error state */}
         {paypalSlowNotice && (
@@ -424,7 +497,7 @@ export function DoctorPanel({
           </div>
         )}
 
-        {/* Drifting orders list or friendly empty state */}
+        {/* Drifting orders list or calm empty state */}
         <div className="mt-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-ink">
@@ -438,22 +511,20 @@ export function DoctorPanel({
           </div>
 
           {driftItems.length === 0 ? (
-            <div className="mt-3 rounded-[16px] border border-canvas-soft bg-canvas-soft/50 p-4">
-              <div className="flex items-start gap-2.5">
+            <div className="mt-3 rounded-[16px] border border-canvas-soft bg-canvas-soft/45 p-4">
+              <div className="flex items-start gap-3">
                 <CheckCircleIcon className="mt-0.5 size-5 shrink-0 text-positive" />
                 <div>
-                  <p className="text-sm font-semibold text-ink">
-                    No drift found. Your receipt log matches PayPal.
+                  <p className="text-base font-semibold leading-6 text-ink">
+                    Everything is in sync
                   </p>
-                  <p className="mt-1 text-xs text-body">
-                    Every completed PayPal order has a verified{' '}
-                    <code className="font-mono">PAYMENT.CAPTURE.COMPLETED</code> webhook and{' '}
-                    <code className="font-mono">PAID</code> local status.
+                  <p className="mt-1 text-sm text-body">
+                    All completed PayPal orders match local status with verified capture webhooks.
                   </p>
                   <Button
-                    variant="secondary"
+                    variant="primary"
                     size="sm"
-                    className="mt-3"
+                    className="mt-4"
                     disabled={isInvestigating}
                     onClick={() => void handleInvestigate()}
                   >
@@ -489,7 +560,7 @@ export function DoctorPanel({
                     </div>
 
                     <Button
-                      variant="tertiary"
+                      variant="primary"
                       size="sm"
                       disabled={isInvestigating}
                       onClick={() => void handleInvestigate(item.order_id)}
@@ -506,7 +577,7 @@ export function DoctorPanel({
 
       {/* Live SSE trace step cards */}
       {(isInvestigating || steps.length > 0 || agentError) && (
-        <div className="rounded-[24px] bg-canvas p-6 text-ink">
+        <div className="rounded-[16px] bg-canvas p-6 text-ink shadow-[var(--card-shadow)]">
           <div className="flex items-center justify-between gap-2">
             <div>
               <h3 className="text-base font-semibold text-ink">
@@ -605,9 +676,9 @@ export function DoctorPanel({
 
       {/* Diagnosis card */}
       {diagnosis && (
-        <div className="rounded-[24px] bg-canvas p-6 text-ink">
+        <div className="rounded-[16px] bg-canvas p-6 text-ink shadow-[var(--card-shadow)]">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="font-display text-2xl font-extrabold tracking-tight text-ink">
+            <h3 className="font-display text-2xl font-extrabold leading-8 tracking-tight text-ink">
               Diagnosis
             </h3>
             <Badge tone={rootCauseTone(diagnosis.root_cause)}>
@@ -619,13 +690,10 @@ export function DoctorPanel({
             <Badge tone={confidenceTone(diagnosis.confidence)}>
               Confidence: {diagnosis.confidence}
             </Badge>
-            <Badge tone={diagnosis.safe_to_heal ? 'positive' : 'warning'}>
-              safe_to_heal: {diagnosis.safe_to_heal ? 'true' : 'false'} (server-verified)
-            </Badge>
             <span className="font-mono text-xs text-mute">{diagnosis.model_used}</span>
           </div>
 
-          <p className="mt-4 text-base leading-6 text-body">{diagnosis.summary}</p>
+          <p className="mt-4 text-sm leading-6 text-body">{diagnosis.summary}</p>
 
           {diagnosis.recommended_action && (
             <div className="mt-4 rounded-[16px] bg-canvas-soft px-4 py-3 text-sm text-ink">
@@ -635,7 +703,7 @@ export function DoctorPanel({
           )}
 
           {/* Evidence list linked to trace steps */}
-          <div className="mt-5">
+          <div className="mt-4">
             <h4 className="text-xs font-semibold text-mute">
               Evidence ({diagnosis.evidence.length})
             </h4>
@@ -654,7 +722,7 @@ export function DoctorPanel({
                         e.preventDefault();
                         scrollToStep(ev.tool_call_id);
                       }}
-                      className="mt-1 inline-flex items-center gap-1 font-semibold text-primary hover:text-primary-active hover:underline"
+                      className="mt-1 inline-flex items-center gap-1 rounded font-semibold text-primary hover:text-primary-active hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active"
                     >
                       {matchedStep
                         ? `→ Step ${matchedStep.step}: ${matchedStep.tool_name}`
@@ -666,17 +734,82 @@ export function DoctorPanel({
             </ul>
           </div>
 
+          {/* Heal pre-conditions between Evidence list and Approve fix */}
+          <div className="mt-4 rounded-[16px] border border-canvas-soft bg-canvas-soft/45 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h4 className="text-xs font-semibold text-mute">Heal pre-conditions</h4>
+              <Badge tone={diagnosis.safe_to_heal ? 'positive' : 'warning'}>
+                {diagnosis.safe_to_heal ? (
+                  <>
+                    <CheckCircleIcon className="size-3.5" />
+                    safe_to_heal: true (server-verified)
+                  </>
+                ) : (
+                  <>
+                    <AlertIcon className="size-3.5" />
+                    safe_to_heal: false (server-verified)
+                  </>
+                )}
+              </Badge>
+            </div>
+
+            {proposeConditions ? (
+              <ul className="mt-3 space-y-2">
+                {proposeConditions.map((cond, index) => {
+                  const passed = Boolean(cond.passed ?? cond.ok);
+                  const label = cond.label || cond.name || `Pre-condition ${index + 1}`;
+                  return (
+                    <li
+                      key={`${label}-${index}`}
+                      className="flex items-start gap-2 text-xs text-body"
+                    >
+                      <span
+                        className={`mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full font-bold ${
+                          passed
+                            ? 'bg-positive-bg text-positive-deep'
+                            : 'bg-negative/15 text-negative-deep'
+                        }`}
+                        aria-label={passed ? 'Passed' : 'Failed'}
+                      >
+                        {passed ? '✓' : '✕'}
+                      </span>
+                      <div>
+                        <span className="font-semibold text-ink">{label}</span>
+                        {!passed && cond.reason && (
+                          <p className="mt-0.5 text-negative-deep">{cond.reason}</p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              /*
+               * TODO(doctor-panel): `propose_heal` in `AgentTraceStep.result_summary` currently
+               * emits only `safe_to_heal=<bool> event_id=<id>` and does not expose the 5
+               * per-condition booleans/reasons from `checkHealPreconditions`. Show those 5
+               * green-tick / red-cross rows here once exposed by `/api/agent`.
+               */
+              null
+            )}
+          </div>
+
           {/* Prominent primary action at the bottom of Diagnosis: Approve fix */}
-          <div className="mt-6 border-t border-canvas-soft pt-5">
-            {diagnosis.order_id && (
-              <p className="mb-2.5 text-xs font-semibold text-mute">
-                Target order:{' '}
-                <code className="font-mono text-ink">{diagnosis.order_id}</code>
+          <div className="mt-4 border-t border-canvas-soft pt-4">
+            {diagnosis.order_id && resendEventId && (
+              <p className="mb-3 rounded-[12px] bg-canvas-soft px-3.5 py-2.5 text-sm text-body">
+                Will resend webhook event{' '}
+                <code className="font-mono text-xs font-semibold text-ink">{resendEventId}</code>{' '}
+                for order{' '}
+                <code className="font-mono text-xs font-semibold text-ink">
+                  {diagnosis.order_id}
+                </code>
+                . No PayPal state is changed.
               </p>
             )}
             <Button
               variant="primary"
-              className="w-full py-3.5 text-base font-semibold"
+              className="w-full py-3 text-base font-semibold"
               disabled={!diagnosis.safe_to_heal || isHealing || Boolean(healOutcome?.healed)}
               onClick={() => void handleApproveFix()}
             >
@@ -713,7 +846,7 @@ export function DoctorPanel({
             {healOutcome && (
               <div
                 aria-label="Heal before and after summary"
-                className="mt-5 rounded-[24px] bg-positive-bg p-5 text-positive-deep"
+                className="mt-4 rounded-[16px] bg-positive-bg p-4 text-positive-deep"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>

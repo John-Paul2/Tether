@@ -22,6 +22,7 @@ import {
 } from './components/dialogs';
 import { DoctorPanel } from './components/doctor-panel';
 import { EmptyData } from './components/empty-data';
+import { ReconciliationStrip } from './components/reconciliation-strip';
 import { ReportHeader } from './components/report-header';
 import {
   blankReport,
@@ -41,6 +42,7 @@ import * as reportState from './report-state';
 import { buildAi } from './studio/ai';
 import { buildStudioData, hasData } from './studio/data';
 import { agStudioTetherTheme } from './studio/theme';
+import { createTetherWidgets, TetherStudioContext } from './studio/widgets';
 import { useReports } from './use-reports';
 
 if (process.env.NODE_ENV !== 'production') {
@@ -98,6 +100,8 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
   const [history, setHistory] = useState<StudioHistory>(NO_HISTORY);
   const [mode, setMode] = useState<AgStudioMode>('view');
   const [dialog, setDialog] = useState<DashboardDialog>(null);
+  const [recentlyHealedOrderId, setRecentlyHealedOrderId] = useState<string | null>(null);
+  const healResetTimerRef = useRef<number | null>(null);
 
   const [dropOverride, setDropOverride] = useState<{
     asOf: string;
@@ -115,6 +119,27 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
   const state = studioState ?? initialState;
   const studioData = useMemo(() => buildStudioData(data), [data]);
   const ai = useMemo(() => (aiModels?.length ? buildAi(aiModels) : undefined), [aiModels]);
+  const tetherWidgets = useMemo(() => createTetherWidgets(), []);
+  const studioContextValue = useMemo(() => ({ data }), [data]);
+
+  useEffect(() => {
+    return () => {
+      if (healResetTimerRef.current != null) {
+        window.clearTimeout(healResetTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleHealSucceeded = useCallback((outcome: { order_id: string }) => {
+    setRecentlyHealedOrderId(outcome.order_id);
+    if (healResetTimerRef.current != null) {
+      window.clearTimeout(healResetTimerRef.current);
+    }
+    healResetTimerRef.current = window.setTimeout(() => {
+      setRecentlyHealedOrderId(null);
+      healResetTimerRef.current = null;
+    }, 2400);
+  }, []);
 
   // Whenever server data refreshes, update AG Studio's synchronous data sources and reload queries.
   useEffect(() => {
@@ -238,7 +263,8 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
     (max, widgetPos) => (widgetPos ? Math.max(max, widgetPos.yTrack + widgetPos.ySpan) : max),
     0,
   );
-  const studioMinHeight = Math.max(640, maxTrack * 18 + 48);
+  const studioMinHeight = Math.max(540, maxTrack * 18 + 32);
+  const showReconciliationStrip = state.selectedPageId === 'health';
 
   return (
     <AppShell
@@ -269,6 +295,7 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
         <DoctorPanel
           initialDrift={data.drift}
           dropWebhooks={dropWebhooks}
+          onHealSucceeded={handleHealSucceeded}
           onHealedOrUpdated={() => {
             router.refresh();
           }}
@@ -304,38 +331,51 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
         onOrderMutated={refreshAllData}
       />
 
+      {showReconciliationStrip && (
+        <ReconciliationStrip
+          drift={data.drift}
+          localOrders={data.local_orders}
+          webhookEvents={data.webhook_events}
+          paypalStatus={data.paypalStatus}
+          recentlyHealedOrderId={recentlyHealedOrderId}
+        />
+      )}
+
       <div
         className="ag-studio-host flex-1 min-w-0"
         style={{ '--studio-min-h': `${studioMinHeight}px` } as CSSProperties}
       >
         {hasData(data) ? (
-          <AgStudioProvider licenseKey={licenseKey} modules={ai ? [AgStudioAiModule] : undefined}>
-            <AgStudio
-              style={{ height: '100%', width: '100%' }}
-              theme={agStudioTetherTheme}
-              layout={{ widgetBorderEnabled: true, minWidth: 320 }}
-              panels={{
-                view: { left: [], right: [] },
-                edit: { left: ['ai'], right: ['filters', 'edit', 'data'] },
-              }}
-              data={studioData}
-              ai={ai}
-              initialState={initialState}
-              mode={mode}
-              onApiReady={(event) => {
-                apiRef.current = event.api;
-              }}
-              onStudioReady={(event) => {
-                const current = event.api.getState();
-                setStudioState(current);
-              }}
-              onStateUpdated={(event) => {
-                const { undo, redo } = event.api.getHistory();
-                setStudioState(event.state);
-                setHistory({ canUndo: undo.length > 0, canRedo: redo.length > 0 });
-              }}
-            />
-          </AgStudioProvider>
+          <TetherStudioContext.Provider value={studioContextValue}>
+            <AgStudioProvider licenseKey={licenseKey} modules={ai ? [AgStudioAiModule] : undefined}>
+              <AgStudio
+                style={{ height: '100%', width: '100%' }}
+                theme={agStudioTetherTheme}
+                widgets={tetherWidgets}
+                layout={{ widgetBorderEnabled: true, minWidth: 320 }}
+                panels={{
+                  view: { left: [], right: [] },
+                  edit: { left: ['ai'], right: ['filters', 'edit', 'data'] },
+                }}
+                data={studioData}
+                ai={ai}
+                initialState={initialState}
+                mode={mode}
+                onApiReady={(event) => {
+                  apiRef.current = event.api;
+                }}
+                onStudioReady={(event) => {
+                  const current = event.api.getState();
+                  setStudioState(current);
+                }}
+                onStateUpdated={(event) => {
+                  const { undo, redo } = event.api.getHistory();
+                  setStudioState(event.state);
+                  setHistory({ canUndo: undo.length > 0, canRedo: redo.length > 0 });
+                }}
+              />
+            </AgStudioProvider>
+          </TetherStudioContext.Provider>
         ) : (
           <EmptyData />
         )}

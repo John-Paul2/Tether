@@ -1,6 +1,6 @@
 // AG Studio's data sources for Tether: one source per table in lib/tether-data.ts,
 // relationships joined on order_id, a shared calendar over event dates, and expressions
-// for verification rate, open drift count, and average seconds-to-fixed.
+// for money at risk, verification rate, open drift count, and avg time to fix.
 
 import type {
   AgDataSourcesDefinition,
@@ -13,15 +13,51 @@ import type { TetherData } from '@/lib/tether-data';
 
 const CALENDAR_ID = 'calendar';
 
-type FieldSpec = [id: string, name: string, format: AgFormat, hide?: boolean];
+const usdFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+const orderDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+});
+
+const formatCurrencyValue = (value: unknown): string => {
+  if (value == null) return '—';
+  const num = Number(value);
+  return Number.isFinite(num) ? usdFormatter.format(num) : '—';
+};
+
+const formatOrderDateTime = (value: unknown): string => {
+  if (value == null) return '—';
+  const date = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(date.getTime())) return '—';
+  return orderDateTimeFormatter.format(date);
+};
+
+type FieldExtra = Partial<
+  Pick<AgFieldDefinition, 'hide' | 'formatOptions' | 'createValueFormatter'>
+>;
+
+type FieldSpec = [id: string, name: string, format: AgFormat, hideOrExtra?: boolean | FieldExtra];
 
 const fields = (specs: FieldSpec[]): AgFieldDefinition[] =>
-  specs.map(([id, name, format, hide]) => ({
-    id,
-    name,
-    format,
-    ...(hide && { hide }),
-  }));
+  specs.map(([id, name, format, hideOrExtra]) => {
+    const extra: FieldExtra =
+      typeof hideOrExtra === 'boolean' ? { hide: hideOrExtra } : (hideOrExtra ?? {});
+    return {
+      id,
+      name,
+      format,
+      ...extra,
+    };
+  });
 
 const manyToOne = (id: string, source: string, target: string): AgRelationDefinition => {
   const [sourceTable, sourceField] = source.split('.');
@@ -60,6 +96,28 @@ export function buildStudioData(data: TetherData): AgDataSourcesDefinition {
 
   const expressions: AgExpressionFieldDefinition[] = [
     {
+      id: 'moneyAtRisk',
+      name: 'Money at Risk',
+      description:
+        'Total dollar amount across PayPal sandbox orders with open drift (COMPLETED in PayPal, CREATED locally).',
+      format: 'currencyFormat',
+      formatOptions: { format: '$#,##0.00' },
+      isMeasure: true,
+      createValueFormatter: () => (value) => {
+        if (value == null) return '$0.00';
+        const num = Number(value);
+        return Number.isFinite(num) ? usdFormatter.format(num) : '$0.00';
+      },
+      expression: {
+        operator: 'if',
+        inputs: [
+          { operator: 'isNull', inputs: [sumOf('drift.amount')] },
+          { type: 'number', value: 0 },
+          sumOf('drift.amount'),
+        ],
+      },
+    },
+    {
       id: 'verificationRate',
       name: 'Verification Rate',
       description:
@@ -82,11 +140,16 @@ export function buildStudioData(data: TetherData): AgDataSourcesDefinition {
     },
     {
       id: 'avgSecondsToFixed',
-      name: 'Average Seconds to Fixed',
+      name: 'Avg time to fix',
       description:
         'Average time in seconds from triggering a guarded PayPal webhook resend until the verified webhook flips local_status to PAID.',
       format: 'decimalFormat',
       isMeasure: true,
+      createValueFormatter: () => (value) => {
+        if (value == null) return '—';
+        const num = Number(value);
+        return Number.isFinite(num) ? `${num.toFixed(2)}s` : '—';
+      },
       expression: avgOf('heal_log.seconds_to_fixed'),
     },
   ];
@@ -123,13 +186,35 @@ export function buildStudioData(data: TetherData): AgDataSourcesDefinition {
         fields: fields([
           ['order_id', 'Order ID', 'textFormat'],
           ['local_status', 'Local Status', 'textFormat'],
-          ['amount', 'Order Amount', 'currencyFormat'],
+          [
+            'amount',
+            'Amount',
+            'currencyFormat',
+            {
+              formatOptions: { format: '$#,##0.00' },
+              createValueFormatter: () => formatCurrencyValue,
+            },
+          ],
           ['currency', 'Currency', 'textFormat'],
           ['is_paid', 'Is Paid', 'booleanFormat'],
           ['is_drifting', 'Has Open Drift', 'booleanFormat'],
           ['open_drift', 'Open Drift', 'integerFormat', true],
-          ['created_at', 'Created At', 'dateTimeFormat'],
-          ['updated_at', 'Updated At', 'dateTimeFormat'],
+          [
+            'created_at',
+            'Created At',
+            'dateTimeFormat',
+            {
+              createValueFormatter: () => formatOrderDateTime,
+            },
+          ],
+          [
+            'updated_at',
+            'Updated At',
+            'dateTimeFormat',
+            {
+              createValueFormatter: () => formatOrderDateTime,
+            },
+          ],
           ['order_date', 'Order Date', 'dateFormat'],
         ]),
       },
@@ -184,7 +269,15 @@ export function buildStudioData(data: TetherData): AgDataSourcesDefinition {
           ['order_id', 'Order ID', 'textFormat'],
           ['paypal_status', 'PayPal Status', 'textFormat'],
           ['local_status', 'Local Status', 'textFormat'],
-          ['amount', 'Drift Amount', 'currencyFormat'],
+          [
+            'amount',
+            'Drift Amount',
+            'currencyFormat',
+            {
+              formatOptions: { format: '$#,##0.00' },
+              createValueFormatter: () => formatCurrencyValue,
+            },
+          ],
           ['currency', 'Currency', 'textFormat'],
           ['capture_id', 'Capture ID', 'textFormat'],
           ['has_webhook_in_log', 'Webhook in Local Log', 'booleanFormat'],

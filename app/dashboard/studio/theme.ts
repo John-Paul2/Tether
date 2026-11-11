@@ -23,7 +23,7 @@ export const agStudioTetherTheme = studioTheme.withParams({
   studioWidgetBorderRadius: 16,
   studioWidgetTitleTextColor: token('ink'),
   gridHeaderTextColor: token('mute'),
-  gridRowHeight: 40,
+  gridRowHeight: 52,
   ...palette,
 
   // Additional surface & typography parameters referencing the same CSS variables:
@@ -33,7 +33,7 @@ export const agStudioTetherTheme = studioTheme.withParams({
   iconColor: token('ink'),
   rowHoverColor: token('primary-pale'),
 
-  // Cool-tinted canvas-soft background with white (canvas) widget cards on top (no drop shadows).
+  // Cool-tinted canvas-soft background with white (canvas) widget cards on top.
   studioMinWidth: 320,
   studioCanvasMinWidth: 320,
   studioWrapperBorder: false,
@@ -44,11 +44,11 @@ export const agStudioTetherTheme = studioTheme.withParams({
   studioCanvasBorderRadius: 0,
   studioCanvasShadow: false,
   studioCanvasBackgroundColor: token('canvas-soft'),
-  studioCanvasPadding: 12,
+  studioCanvasPadding: 16,
   studioCanvasRowHeight: 18,
   studioCanvasFontFamily: token('font-sans-stack'),
 
-  // Widgets: white cards (--canvas), 16px radius, no shadow, subtle canvas-soft border.
+  // Widgets: white cards (--canvas), 16px radius, 8px inset, subtle canvas-soft border.
   studioWidgetBackgroundColor: token('canvas'),
   studioWidgetBorder: line('canvas-soft'),
   studioWidgetPadding: 8,
@@ -56,7 +56,7 @@ export const agStudioTetherTheme = studioTheme.withParams({
   studioWidgetTitleFontSize: 16,
   studioWidgetTitleFontWeight: 600,
   studioWidgetSubtitleFontFamily: token('font-sans-stack'),
-  studioWidgetSubtitleFontSize: 13,
+  studioWidgetSubtitleFontSize: 12,
   studioWidgetSubtitleTextColor: token('mute'),
   studioWidgetCaptionFontFamily: token('font-sans-stack'),
   studioWidgetCaptionFontSize: 12,
@@ -78,7 +78,7 @@ export const agStudioTetherTheme = studioTheme.withParams({
   studioToggleButtonActiveBorderColor: token('primary'),
   studioToggleButtonActiveColor: token('primary-active'),
 
-  // Data tables / grid widgets (DESIGN.md data-table spec)
+  // Data tables / grid widgets (DESIGN.md data-table spec, 52px spacious rows, no heavy gridlines)
   gridFontFamily: token('font-sans-stack'),
   gridFontSize: 14,
   gridCellTextColor: token('ink'),
@@ -86,6 +86,7 @@ export const agStudioTetherTheme = studioTheme.withParams({
   gridHeaderFontWeight: 600,
   gridHeaderFontSize: 12,
   gridRowBorder: line('canvas-soft'),
+  gridColumnBorder: { width: 1, color: 'transparent' },
   gridHeaderRowBorder: line('canvas-soft'),
   gridPinnedRowBorder: line('canvas-soft'),
   gridRowHoverColor: token('primary-pale'),

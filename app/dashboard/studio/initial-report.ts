@@ -1,7 +1,7 @@
 // The built-in Tether report (initialState) with two pages:
-//   1. "Health": KPI cards (events received, verification rate, open drift, avg seconds-to-fixed),
-//      a chart of events over time by event type, and a grid of local orders with local_status.
-//   2. "Incidents": a grid of heal_log and a grid of agent_runs (root cause, model used, confidence).
+//   1. "Health": KPI cards (Money at risk, Open drift, Verification rate, Avg time to fix),
+//      and a spacious Local orders grid sorted drifting-first then newest-first.
+//   2. "Incidents": Webhook events over time by event type chart, heal_log grid, and agent_runs grid.
 
 import type { AgPageState, AgReportState, AgWidgetLayoutState } from 'ag-studio';
 
@@ -34,8 +34,8 @@ const kpi = (
       wrapping: true,
       typography: {
         fontFamily: SANS_FONT,
-        fontSize: 13,
-        fontWeight: 'normal' as const,
+        fontSize: 14,
+        fontWeight: 'bold' as const,
         fontStyle: 'normal' as const,
       },
     },
@@ -43,10 +43,10 @@ const kpi = (
       enabled: false,
     },
     style: {
-      textScaling: { enabled: true },
+      textScaling: { enabled: false },
       typography: {
         fontFamily: DISPLAY_FONT,
-        fontSize: 32,
+        fontSize: 40,
         fontWeight: 'bold' as const,
         fontStyle: 'normal' as const,
       },
@@ -57,10 +57,40 @@ const kpi = (
 const health: AgPageState = {
   id: 'health',
   widgets: {
-    'kpi-events-received': kpi('Events received', sum('webhook_events.event_count')),
-    'kpi-verification-rate': kpi('Verification rate', { id: 'verificationRate' }),
+    'kpi-money-at-risk': kpi('Money at risk', { id: 'moneyAtRisk' }),
     'kpi-open-drift': kpi('Open drift', { id: 'openDriftCount' }),
-    'kpi-avg-seconds-to-fixed': kpi('Avg seconds-to-fixed', { id: 'avgSecondsToFixed' }),
+    'kpi-verification-rate': kpi('Verification rate', { id: 'verificationRate' }),
+    'kpi-avg-seconds-to-fixed': kpi('Avg time to fix', { id: 'avgSecondsToFixed' }),
+    'local-orders-grid': {
+      type: 'grid',
+      dataMapping: {
+        cols: [
+          { id: 'local_orders.order_id' },
+          { id: 'local_orders.local_status' },
+          { id: 'local_orders.amount' },
+          { id: 'local_orders.currency' },
+          { id: 'local_orders.is_drifting' },
+          { id: 'local_orders.created_at' },
+          { id: 'local_orders.updated_at' },
+        ],
+      },
+      // Studio dev-validation permits 1 sort item in report state; TetherLocalOrdersGrid adds secondary created_at desc sort.
+      sort: [{ field: { id: 'local_orders.is_drifting' }, direction: 'desc' }],
+      format: title('Local orders'),
+    },
+  },
+  widgetLayout: {
+    'kpi-money-at-risk': at(0, 0, 9, 8),
+    'kpi-open-drift': at(9, 0, 5, 8),
+    'kpi-verification-rate': at(14, 0, 5, 8),
+    'kpi-avg-seconds-to-fixed': at(19, 0, 5, 8),
+    'local-orders-grid': at(0, 8, 24, 24),
+  },
+};
+
+const incidents: AgPageState = {
+  id: 'incidents',
+  widgets: {
     'events-over-time': {
       type: 'column-chart-stacked',
       dataMapping: {
@@ -73,36 +103,6 @@ const health: AgPageState = {
         style: { theme: { common: { legend: { enabled: true } } } },
       },
     },
-    'local-orders-grid': {
-      type: 'grid',
-      dataMapping: {
-        cols: [
-          { id: 'local_orders.order_id' },
-          { id: 'local_orders.local_status' },
-          sum('local_orders.amount'),
-          { id: 'local_orders.currency' },
-          { id: 'local_orders.is_drifting' },
-          { id: 'local_orders.created_at' },
-          { id: 'local_orders.updated_at' },
-        ],
-      },
-      sort: [{ field: { id: 'local_orders.created_at' }, direction: 'desc' }],
-      format: title('Local orders'),
-    },
-  },
-  widgetLayout: {
-    'kpi-events-received': at(0, 0, 6, 8),
-    'kpi-verification-rate': at(6, 0, 6, 8),
-    'kpi-open-drift': at(12, 0, 6, 8),
-    'kpi-avg-seconds-to-fixed': at(18, 0, 6, 8),
-    'events-over-time': at(0, 8, 24, 15),
-    'local-orders-grid': at(0, 23, 24, 26),
-  },
-};
-
-const incidents: AgPageState = {
-  id: 'incidents',
-  widgets: {
     'heal-log-grid': {
       type: 'grid',
       dataMapping: {
@@ -141,8 +141,9 @@ const incidents: AgPageState = {
     },
   },
   widgetLayout: {
-    'heal-log-grid': at(0, 0, 24, 26),
-    'agent-runs-grid': at(0, 26, 24, 26),
+    'events-over-time': at(0, 0, 24, 15),
+    'heal-log-grid': at(0, 15, 24, 22),
+    'agent-runs-grid': at(0, 37, 24, 22),
   },
 };
 

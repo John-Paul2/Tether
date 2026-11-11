@@ -40,6 +40,10 @@
   --font-display-stack: var(--font-manrope), var(--font-inter), system-ui, sans-serif;
   --font-sans-stack: var(--font-inter), system-ui, sans-serif;
 
+  /* Elevation: subtle card shadow & 16px card radius */
+  --card-shadow: 0 1px 3px rgba(11, 20, 38, 0.05), 0 1px 2px rgba(11, 20, 38, 0.04);
+  --card-shadow-hover: 0 4px 12px rgba(11, 20, 38, 0.07);
+
   /* Legacy aliases mapped to Tether tokens */
   --pp-navy: var(--ink-deep);
   --pp-blue: var(--primary);
@@ -134,10 +138,50 @@ body {
   }
 }
 
-/* Guarantee AG Studio grids keep >=360px height and never collapse */
+/* Guarantee AG Studio grids keep clean height and never collapse */
 .ag-studio-grid-widget,
 .ag-studio-grid-widget .ag-root-wrapper {
-  min-height: 360px;
+  min-height: 320px;
+}
+
+/* Subtle shadows, 16px radius, and live KPI accent border on Studio widget cards */
+.ag-studio-layout-widget-container {
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.ag-studio-layout-widget-container:has([data-kpi-accent='positive']) {
+  border-top: 3px solid var(--positive);
+}
+
+.ag-studio-layout-widget-container:has([data-kpi-accent='negative']) {
+  border-top: 3px solid var(--negative);
+}
+
+.ag-studio-layout-widget-container:has([data-kpi-accent='warning']) {
+  border-top: 3px solid var(--warning-deep);
+}
+
+/* Visible flash highlight when Local Status flips CREATED -> PAID */
+.tether-local-orders-grid .ag-cell-data-changed {
+  background-color: color-mix(in srgb, var(--positive) 24%, transparent) !important;
+  transition: background-color 600ms ease;
+}
+
+.tether-local-orders-grid .ag-row.tether-drifting-row {
+  background-color: color-mix(in srgb, var(--negative) 6%, var(--canvas));
+}
+
+.tether-local-orders-grid .ag-row.tether-drifting-row:hover {
+  background-color: color-mix(in srgb, var(--negative) 10%, var(--canvas));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ag-studio-layout-widget-container,
+  .tether-local-orders-grid .ag-cell-data-changed {
+    transition: none !important;
+  }
 }
 
 @media (min-width: 640px) {
@@ -145,7 +189,7 @@ body {
   .ag-studio-host > div,
   .ag-studio-host .ag-studio-root,
   .ag-studio-host .ag-studio-layout {
-    min-height: var(--studio-min-h, 640px);
+    min-height: var(--studio-min-h, 540px);
   }
 }
 
@@ -186,12 +230,14 @@ body {
   }
 
   .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))
-    .ag-studio-layout-widget:has(.ag-studio-value-widget) {
+    .ag-studio-layout-widget:has(.ag-studio-value-widget),
+  .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))
+    .ag-studio-layout-widget:has([data-kpi-accent]) {
     min-height: 120px !important;
   }
 
   .ag-studio-layout-canvas:not(:has(.ag-studio-layout-widget-editing))
-    .ag-studio-layout-widget:not(:has(.ag-studio-value-widget)) {
+    .ag-studio-layout-widget:not(:has(.ag-studio-value-widget)):not(:has([data-kpi-accent])) {
     grid-column: 1 / -1 !important;
     min-height: 280px !important;
   }

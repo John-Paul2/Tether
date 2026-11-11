@@ -83,7 +83,7 @@ export function ReportsSidebar({
                     }}
                     onDoubleClick={() => setRenaming(report.id)}
                     aria-expanded={open}
-                    className={`flex w-full items-center gap-2.5 rounded-[24px] py-2 pl-3.5 pr-9 text-left text-sm transition-colors ${
+                    className={`flex w-full items-center gap-2.5 rounded-[24px] py-2 pl-3.5 pr-9 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active ${
                       active ? 'font-semibold text-ink' : 'text-body hover:bg-canvas-soft'
                     }`}
                   >
@@ -98,7 +98,7 @@ export function ReportsSidebar({
                     aria-haspopup="menu"
                     aria-expanded={menuFor === report.id}
                     onClick={() => setMenuFor(menuFor === report.id ? null : report.id)}
-                    className={`flex size-7 items-center justify-center rounded-full text-mute hover:bg-canvas-soft hover:text-ink ${
+                    className={`flex size-7 items-center justify-center rounded-full text-mute hover:bg-canvas-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active ${
                       menuFor === report.id
                         ? 'opacity-100'
                         : 'opacity-0 focus-visible:opacity-100 group-hover:opacity-100'
@@ -161,7 +161,7 @@ export function ReportsSidebar({
                             onDoubleClick={() => active && editing && setRenaming(page.id)}
                             aria-current={selected ? 'page' : undefined}
                             title={active && editing ? 'Double-click to rename' : undefined}
-                            className={`block w-full truncate rounded-full px-3.5 py-1.5 text-left text-sm transition-colors ${
+                            className={`block w-full truncate rounded-full px-3.5 py-1.5 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active ${
                               selected
                                 ? 'bg-primary-pale font-semibold text-primary-active'
                                 : 'text-body hover:bg-canvas-soft hover:text-ink'
@@ -176,7 +176,7 @@ export function ReportsSidebar({
                             aria-label={`Remove page ${page.title}`}
                             title="Remove page"
                             onClick={() => onRemovePage(page.id)}
-                            className="absolute right-1.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-mute opacity-0 hover:bg-canvas hover:text-negative focus-visible:opacity-100 group-hover:opacity-100"
+                            className="absolute right-1.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-mute opacity-0 hover:bg-canvas hover:text-negative focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active group-hover:opacity-100"
                           >
                             <CloseIcon className="size-3.5" />
                           </button>
@@ -193,7 +193,7 @@ export function ReportsSidebar({
                           const id = onAddPage();
                           if (id) setRenaming(id);
                         }}
-                        className="flex w-full items-center gap-1.5 rounded-full px-3.5 py-1.5 text-left text-sm font-semibold text-primary hover:bg-primary-pale"
+                        className="flex w-full items-center gap-1.5 rounded-full px-3.5 py-1.5 text-left text-sm font-semibold text-primary hover:bg-primary-pale focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active"
                       >
                         <PlusIcon className="size-4" /> Add page
                       </button>
@@ -215,7 +215,7 @@ export function ReportsSidebar({
             type="button"
             onClick={onReset}
             disabled={!ready}
-            className="font-semibold text-primary hover:underline"
+            className="rounded font-semibold text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active"
           >
             Reset report
           </button>

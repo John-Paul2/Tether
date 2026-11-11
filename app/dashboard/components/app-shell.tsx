@@ -12,7 +12,7 @@ import { AnchorIcon, LinkChainIcon } from './ui/icons';
 
 function TetherHeader() {
   return (
-    <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-canvas-soft bg-canvas px-6 py-3 text-sm font-semibold text-ink">
+    <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-canvas-soft bg-canvas px-6 py-2.5 text-sm font-semibold text-ink">
       <div className="flex items-center gap-3">
         <span
           className="inline-flex size-9 items-center justify-center rounded-full bg-primary-pale text-primary"
@@ -70,7 +70,7 @@ export function AppShell({
         {doctorPanel && (
           <aside
             aria-label="Doctor panel"
-            className="flex w-full shrink-0 flex-col border-t border-primary-neutral/60 bg-primary-pale/55 p-5 xl:w-[40%] xl:min-w-[460px] xl:max-w-[780px] xl:border-l xl:border-t-0 xl:p-6"
+            className="flex w-full shrink-0 flex-col border-t border-primary-neutral/60 bg-primary-pale/55 p-4 xl:w-[40%] xl:min-w-[460px] xl:max-w-[780px] xl:self-start xl:rounded-bl-[16px] xl:border-b xl:border-l xl:border-t-0 xl:p-6"
           >
             {doctorPanel}
           </aside>
