@@ -30,6 +30,7 @@ export function DemoControlsPanel({
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const faultSwitchRef = useRef<HTMLButtonElement>(null);
 
   const [togglingFault, setTogglingFault] = useState(false);
 
@@ -51,6 +52,9 @@ export function DemoControlsPanel({
 
   useEffect(() => {
     if (!open) return;
+    const raf = requestAnimationFrame(() => {
+      faultSwitchRef.current?.focus();
+    });
     const onPointerDown = (event: PointerEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) {
         setOpen(false);
@@ -66,6 +70,7 @@ export function DemoControlsPanel({
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
     return () => {
+      cancelAnimationFrame(raf);
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
@@ -318,6 +323,7 @@ export function DemoControlsPanel({
                   {dropWebhooks ? 'Dropping' : 'Normal'}
                 </Badge>
                 <button
+                  ref={faultSwitchRef}
                   type="button"
                   role="switch"
                   aria-checked={dropWebhooks}
@@ -352,7 +358,7 @@ export function DemoControlsPanel({
                   inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="h-9 w-24 rounded-[var(--radius-input)] border border-line-strong bg-sunken px-3 font-mono text-sm text-fg tabular-nums outline-none focus:border-accent"
+                  className="h-9 w-24 rounded-[var(--radius-input)] border border-line-strong bg-sunken px-3 font-mono text-sm text-fg tabular-nums focus:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 />
                 <Button
                   variant="tertiary"
@@ -401,7 +407,7 @@ export function DemoControlsPanel({
                   placeholder="e.g. 12N95587M6071792S"
                   value={captureOrderId}
                   onChange={(e) => setCaptureOrderId(e.target.value)}
-                  className="h-9 min-w-[170px] flex-1 rounded-[var(--radius-input)] border border-line-strong bg-sunken px-3 font-mono text-sm text-fg outline-none focus:border-accent"
+                  className="h-9 min-w-[170px] flex-1 rounded-[var(--radius-input)] border border-line-strong bg-sunken px-3 font-mono text-sm text-fg focus:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 />
                 <datalist id="unpaid-local-orders">
                   {unpaidOrders.map((o) => (

@@ -449,7 +449,10 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
                 style={{ height: '100%', width: '100%' }}
                 theme={agStudioTetherTheme}
                 widgets={tetherWidgets}
-                localeText={{ widgetOverlayNoData: 'Not enough data yet.' }}
+                localeText={{
+                  widgetOverlayNoData: 'Not enough data yet.',
+                  widgetOverlayLoading: 'Loading report data…',
+                }}
                 layout={{ widgetBorderEnabled: true, minWidth: 320 }}
                 panels={{
                   view: { left: [], right: [] },

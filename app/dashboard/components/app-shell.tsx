@@ -55,6 +55,24 @@ export function AppShell({
         event.preventDefault();
         onCloseDoctorDrawer?.();
         doctorTriggerRef?.current?.focus();
+        return;
+      }
+      if (event.key === 'Tab' && asideRef.current) {
+        const focusables = Array.from(
+          asideRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ),
+        ).filter((el) => el.offsetParent !== null);
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
       }
     };
 
