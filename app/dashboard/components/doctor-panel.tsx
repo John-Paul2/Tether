@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type CSSProperties } from 'react';
 import type { TetherDriftRow, TetherLocalOrderRow } from '@/lib/tether-data';
 import {
   AlertIcon,
@@ -159,6 +159,7 @@ export function DoctorPanel({
   isSelectedDrifting = false,
   onHealedOrUpdated,
   onHealSucceeded,
+  onInvestigatingChange,
   onCloseDrawer,
 }: {
   initialDrift: TetherDriftRow[];
@@ -167,6 +168,7 @@ export function DoctorPanel({
   isSelectedDrifting?: boolean;
   onHealedOrUpdated: () => void;
   onHealSucceeded?: (outcome: { order_id: string; event_id: string | null }) => void;
+  onInvestigatingChange?: (running: boolean) => void;
   onCloseDrawer?: () => void;
 }) {
   const [manualDrift, setManualDrift] = useState<{
@@ -244,6 +246,7 @@ export function DoctorPanel({
     const targetOrder = orderId?.trim() || undefined;
     setInvestigatingOrderId(targetOrder ?? 'system');
     setIsInvestigating(true);
+    onInvestigatingChange?.(true);
     setAgentError(null);
     setModelSlowNotice(null);
     setSteps([]);
@@ -335,6 +338,7 @@ export function DoctorPanel({
       clearTimeout(timeoutId);
       setModelSlowNotice(null);
       setIsInvestigating(false);
+      onInvestigatingChange?.(false);
     }
   };
 
@@ -459,7 +463,8 @@ export function DoctorPanel({
   return (
     <div
       data-testid="doctor-panel"
-      className="flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface text-fg xl:sticky xl:top-4 xl:h-[calc(100dvh-var(--topbar-height)-2.25rem)] xl:max-h-[calc(100dvh-var(--topbar-height)-2.25rem)]"
+      style={{ '--stagger-index': 0 } as CSSProperties}
+      className="tether-card-enter flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface text-fg xl:sticky xl:top-4 xl:h-[calc(100dvh-var(--topbar-height)-2.25rem)] xl:max-h-[calc(100dvh-var(--topbar-height)-2.25rem)]"
     >
       {/* Sticky Header: Stethoscope, Title, Refresh, Optional Drawer Close, and Selected Order */}
       <header className="shrink-0 border-b border-line bg-surface p-4">
@@ -563,7 +568,7 @@ export function DoctorPanel({
         )}
 
         {driftError && (
-          <div className="rounded-[var(--radius-card)] border border-drift/40 bg-drift-soft p-3.5 text-xs text-drift">
+          <div className="tether-error-shake rounded-[var(--radius-card)] border border-drift/40 bg-drift-soft p-3.5 text-xs text-drift">
             <p className="font-semibold">PayPal sandbox drift check didn&apos;t finish</p>
             <p className="mt-1 text-fg-2">{driftError}</p>
             <Button
@@ -707,7 +712,7 @@ export function DoctorPanel({
             )}
 
             {agentError && (
-              <div className="mt-2.5 rounded-[var(--radius-input)] border border-drift/40 bg-drift-soft p-3 text-xs text-drift">
+              <div className="tether-error-shake mt-2.5 rounded-[var(--radius-input)] border border-drift/40 bg-drift-soft p-3 text-xs text-drift">
                 <div className="flex items-start gap-2">
                   <AlertIcon className="mt-0.5 size-4 shrink-0" />
                   <div className="min-w-0">
@@ -742,58 +747,65 @@ export function DoctorPanel({
               </div>
             )}
 
-            <ol className="mt-2.5 space-y-2">
+            <ol className="mt-2.5">
               {steps.map((step, index) => {
                 const isOutlined =
                   hoveredToolCallId === step.tool_call_id ||
                   highlightedToolCallId === step.tool_call_id;
                 const isLatestRunning = isInvestigating && index === steps.length - 1;
                 return (
-                  <li
-                    key={step.tool_call_id}
-                    id={`trace-step-${step.tool_call_id}`}
-                    className={`rounded-[var(--radius-input)] border px-3 py-2.5 transition-[border-color,box-shadow,background-color] duration-[var(--dur-fast)] ${
-                      isOutlined
-                        ? 'border-accent bg-ai-soft ring-1 ring-accent'
-                        : 'border-accent/25 bg-ai-soft'
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-1.5">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-accent/35 bg-sunken font-mono text-[11px] font-semibold text-accent tabular-nums">
-                          {step.step}
-                        </span>
-                        <span className="truncate font-mono text-xs font-semibold text-fg">
-                          {step.tool_name}
-                        </span>
+                  <li key={step.tool_call_id} id={`trace-step-${step.tool_call_id}`}>
+                    {index > 0 && (
+                      <div
+                        aria-hidden
+                        className="tether-stepper-connector ml-5 h-2.5 w-[1.5px] opacity-80"
+                        style={{ backgroundImage: 'var(--filament-gradient)' }}
+                      />
+                    )}
+                    <div
+                      className={`tether-step-enter rounded-[var(--radius-input)] border px-3 py-2.5 transition-[border-color,box-shadow,background-color] duration-[var(--dur-fast)] ease-[var(--ease)] ${
+                        isOutlined
+                          ? 'border-accent bg-ai-soft ring-1 ring-accent'
+                          : 'border-accent/25 bg-ai-soft'
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-1.5">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-accent/35 bg-sunken font-mono text-[11px] font-semibold text-accent tabular-nums">
+                            {step.step}
+                          </span>
+                          <span className="truncate font-mono text-xs font-semibold text-fg">
+                            {step.tool_name}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <span className="rounded-full border border-line bg-sunken px-2 py-0.5 font-mono text-[11px] text-fg-2 tabular-nums">
+                            {step.duration_ms} ms
+                          </span>
+                          <span className="rounded-full border border-accent/30 bg-sunken px-2 py-0.5 font-mono text-[11px] text-ai">
+                            {step.model_used}
+                          </span>
+                          {isLatestRunning ? (
+                            <span
+                              className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-accent/35 border-t-accent"
+                              title="Step running"
+                              aria-hidden
+                            />
+                          ) : (
+                            <CheckIcon
+                              className="tether-tick-draw size-3.5 shrink-0 text-sync"
+                              strokeWidth={2}
+                              aria-hidden
+                            />
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5">
-                        <span className="rounded-full border border-line bg-sunken px-2 py-0.5 font-mono text-[11px] text-fg-2 tabular-nums">
-                          {step.duration_ms} ms
-                        </span>
-                        <span className="rounded-full border border-accent/30 bg-sunken px-2 py-0.5 font-mono text-[11px] text-ai">
-                          {step.model_used}
-                        </span>
-                        {isLatestRunning ? (
-                          <span
-                            className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-accent/35 border-t-accent"
-                            title="Step running"
-                            aria-hidden
-                          />
-                        ) : (
-                          <CheckIcon
-                            className="size-3.5 shrink-0 text-sync"
-                            strokeWidth={2}
-                            aria-hidden
-                          />
-                        )}
-                      </div>
+                      <p className="mt-1.5 break-words font-mono text-[11px] leading-relaxed text-fg-2">
+                        {step.result_summary}
+                      </p>
                     </div>
-
-                    <p className="mt-1.5 break-words font-mono text-[11px] leading-relaxed text-fg-2">
-                      {step.result_summary}
-                    </p>
                   </li>
                 );
               })}
@@ -805,11 +817,11 @@ export function DoctorPanel({
         {diagnosis && (
           <section
             aria-label="Diagnosis"
-            className="space-y-3.5 rounded-[var(--radius-card)] border border-line-strong bg-raised p-4"
+            className="tether-diagnosis-enter space-y-3.5 rounded-[var(--radius-card)] border border-line-strong bg-raised p-4"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-display text-lg font-semibold text-fg">Diagnosis</h3>
-              <Badge tone={rootCauseTone(diagnosis.root_cause)}>
+              <Badge tone={rootCauseTone(diagnosis.root_cause)} className="tether-badge-pop">
                 {formatRootCause(diagnosis.root_cause)}
               </Badge>
             </div>
@@ -859,7 +871,11 @@ export function DoctorPanel({
                     const passed = Boolean(cond.passed ?? cond.ok);
                     const label = cond.label || cond.name || `Pre-condition ${index + 1}`;
                     return (
-                      <li key={`${label}-${index}`} className="flex items-start gap-2 text-xs">
+                      <li
+                        key={`${label}-${index}`}
+                        style={{ '--check-index': index } as CSSProperties}
+                        className="tether-check-stagger flex items-start gap-2 text-xs"
+                      >
                         <span
                           className={`mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full ${
                             passed ? 'bg-sync-soft text-sync' : 'bg-drift-soft text-drift'
@@ -867,7 +883,7 @@ export function DoctorPanel({
                           aria-label={passed ? 'Passed' : 'Failed'}
                         >
                           {passed ? (
-                            <CheckIcon className="size-2.5" strokeWidth={2.2} />
+                            <CheckIcon className="tether-tick-draw size-2.5" strokeWidth={2.2} />
                           ) : (
                             <CloseIcon className="size-2.5" strokeWidth={2.2} />
                           )}
@@ -958,7 +974,7 @@ export function DoctorPanel({
         )}
 
         {healError && (
-          <div className="rounded-[var(--radius-card)] border border-drift/45 bg-drift-soft p-3.5 text-xs text-drift">
+          <div className="tether-error-shake rounded-[var(--radius-card)] border border-drift/45 bg-drift-soft p-3.5 text-xs text-drift">
             <p className="font-semibold">Heal could not complete</p>
             <p className="mt-1 text-fg-2">{healError}</p>
           </div>
@@ -967,7 +983,7 @@ export function DoctorPanel({
         {healOutcome && (
           <section
             aria-label="Heal before and after summary"
-            className="space-y-3 rounded-[var(--radius-card)] border border-sync/45 bg-sync-soft p-4"
+            className="tether-diagnosis-enter space-y-3 rounded-[var(--radius-card)] border border-sync/45 bg-sync-soft p-4"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
@@ -976,7 +992,7 @@ export function DoctorPanel({
                 </p>
                 <p className="font-mono text-xs text-fg-2">Order {healOutcome.order_id}</p>
               </div>
-              <StatusPill variant="In sync" label="Healed" />
+              <StatusPill variant="In sync" label="Healed" className="tether-pill-morph" />
             </div>
 
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
@@ -1004,7 +1020,11 @@ export function DoctorPanel({
                   After
                 </p>
                 <div className="mt-1.5">
-                  <StatusPill variant="PAID" label={healOutcome.after_status} />
+                  <StatusPill
+                    variant="PAID"
+                    label={healOutcome.after_status}
+                    className="tether-pill-morph"
+                  />
                 </div>
               </div>
             </div>
@@ -1050,7 +1070,7 @@ export function DoctorPanel({
         <div title={!canApproveFix ? approveTitle : undefined}>
           <Button
             variant="primary"
-            className="w-full py-2.5 text-sm font-semibold"
+            className={`w-full py-2.5 text-sm font-semibold ${isHealing ? 'tether-approve-progress' : ''}`}
             disabled={!canApproveFix}
             title={approveTitle}
             onClick={() => void handleApproveFix()}

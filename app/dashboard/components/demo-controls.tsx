@@ -428,7 +428,13 @@ export function DemoControlsPanel({
             )}
 
             {statusMessage && (
-              <div className="space-y-1.5 rounded-[var(--radius-input)] border border-line bg-surface px-3 py-2.5 text-xs">
+              <div
+                className={`space-y-1.5 rounded-[var(--radius-input)] border px-3 py-2.5 text-xs ${
+                  statusMessage.tone === 'negative'
+                    ? 'tether-error-shake border-drift/45 bg-drift-soft'
+                    : 'border-line bg-surface'
+                }`}
+              >
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={statusMessage.tone}>
                     {statusMessage.tone === 'positive'

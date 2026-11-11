@@ -455,10 +455,10 @@ export function TopBar({
         </div>
       </header>
 
-      {/* 1.5px filament divider under header (design spec section 1) */}
+      {/* 1.5px filament divider under header (design spec section 1 & 7 subtle 6s sweep) */}
       <div
         aria-hidden
-        className="h-[1.5px] w-full opacity-60"
+        className="tether-filament-sweep h-[1.5px] w-full opacity-65"
         style={{ backgroundImage: 'var(--filament-gradient)' }}
       />
 

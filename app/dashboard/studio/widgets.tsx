@@ -27,6 +27,7 @@ import { StatusPill } from '../components/ui/status-pill';
 export type TetherStudioContextValue = {
   data: TetherData;
   selectedOrderId: string | null;
+  recentlyHealedOrderId?: string | null;
   onSelectOrder: (orderId: string) => void;
 };
 
@@ -360,6 +361,7 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
   const studioCtx = useTetherStudioContext();
   const tetherData = studioCtx?.data ?? null;
   const selectedOrderId = studioCtx?.selectedOrderId ?? null;
+  const recentlyHealedOrderId = studioCtx?.recentlyHealedOrderId ?? null;
   const onSelectOrder = studioCtx?.onSelectOrder;
   const fields = useMemo(() => dataMapping.cols ?? [], [dataMapping.cols]);
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -380,7 +382,7 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
 
   useEffect(() => {
     gridApiRef.current?.redrawRows();
-  }, [selectedOrderId]);
+  }, [selectedOrderId, recentlyHealedOrderId]);
 
   const fieldById = useMemo(() => {
     const map = new Map<string, AgWidgetField>();
@@ -564,8 +566,10 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
         Boolean(p.data?.[driftingKey]),
       'tether-selected-row': (p: RowClassParams<Record<string, unknown>>) =>
         Boolean(selectedOrderId && String(p.data?.[orderIdKey] ?? '') === selectedOrderId),
+      'tether-just-healed-row': (p: RowClassParams<Record<string, unknown>>) =>
+        Boolean(recentlyHealedOrderId && String(p.data?.[orderIdKey] ?? '') === recentlyHealedOrderId),
     }),
-    [driftingKey, orderIdKey, selectedOrderId],
+    [driftingKey, orderIdKey, recentlyHealedOrderId, selectedOrderId],
   );
 
   if (fields.length === 0) {

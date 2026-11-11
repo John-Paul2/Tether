@@ -141,6 +141,7 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
   const [mode, setMode] = useState<AgStudioMode>('view');
   const [dialog, setDialog] = useState<DashboardDialog>(null);
   const [doctorDrawerOpen, setDoctorDrawerOpen] = useState(false);
+  const [isInvestigating, setIsInvestigating] = useState(false);
   const doctorTriggerRef = useRef<HTMLButtonElement>(null);
   const [manualSelectedOrderId, setManualSelectedOrderId] = useState<string | null>(null);
   const [recentlyHealedOrderId, setRecentlyHealedOrderId] = useState<string | null>(null);
@@ -192,9 +193,10 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
     () => ({
       data,
       selectedOrderId,
+      recentlyHealedOrderId,
       onSelectOrder: setManualSelectedOrderId,
     }),
-    [data, selectedOrderId],
+    [data, recentlyHealedOrderId, selectedOrderId],
   );
 
   useEffect(() => {
@@ -405,6 +407,7 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
           selectedOrder={selectedOrder}
           isSelectedDrifting={isSelectedDrifting}
           onHealSucceeded={handleHealSucceeded}
+          onInvestigatingChange={setIsInvestigating}
           onHealedOrUpdated={() => {
             router.refresh();
           }}
@@ -430,6 +433,7 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
             paypalStatus={data.paypalStatus}
             selectedOrderId={selectedOrderId}
             recentlyHealedOrderId={recentlyHealedOrderId}
+            isChecking={isInvestigating}
           />
         </div>
       )}

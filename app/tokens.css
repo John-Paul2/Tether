@@ -43,7 +43,10 @@
   /* Hover / pressed state for the accent (not in the design file; a lighter step of --accent). */
   --accent-strong: #aebaff;
   --filament-gradient: linear-gradient(90deg, #4c8dff 0%, #8b9dff 50%, #3ddc97 100%);
+  --filament-sheen: linear-gradient(90deg, transparent 0%, rgba(232, 236, 244, 0.55) 50%, transparent 100%);
   --filament-glow: 0 0 12px rgba(139, 157, 255, 0.45);
+  --drift-glow-shadow: 0 0 22px rgba(255, 95, 87, 0.28);
+  --checking-dot-glow: 0 0 10px rgba(139, 157, 255, 0.8);
   --filament-width: 1.5px;
   /* Hover tint for rows and menu items. */
   --row-hover: var(--bg-raised);

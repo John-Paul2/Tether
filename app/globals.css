@@ -123,6 +123,351 @@ body {
   }
 }
 
+/* ---- 7. Tether Noir motion choreography ------------------------------------------------ */
+@keyframes tether-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tether-filament-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+@keyframes tether-drift-breathe {
+  0%,
+  100% {
+    text-shadow: none;
+  }
+  50% {
+    text-shadow: var(--drift-glow-shadow);
+  }
+}
+
+@keyframes tether-drift-node-appear {
+  0% {
+    opacity: 0.45;
+    transform: scale(0.97);
+  }
+  45% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tether-filament-break {
+  0% {
+    opacity: 0.95;
+  }
+  30% {
+    opacity: 0.3;
+  }
+  65% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes tether-checking-travel {
+  0% {
+    left: 0%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    left: calc(100% - 8px);
+    opacity: 0;
+  }
+}
+
+@keyframes tether-step-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tether-stepper-draw {
+  from {
+    opacity: 0.25;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes tether-tick-draw {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes tether-diagnosis-expand {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scaleY(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+@keyframes tether-badge-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tether-check-reveal {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes tether-progress-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+@keyframes tether-filament-heal {
+  0% {
+    transform: scaleX(0);
+    box-shadow: none;
+  }
+  65% {
+    transform: scaleX(1);
+    box-shadow: var(--filament-glow);
+  }
+  100% {
+    transform: scaleX(1);
+    box-shadow: none;
+  }
+}
+
+@keyframes tether-node-fill {
+  from {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tether-pill-morph {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tether-cell-heal-flash {
+  0% {
+    background-color: var(--sync-soft);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes tether-error-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  45% {
+    transform: translateX(4px);
+  }
+  70% {
+    transform: translateX(-2px);
+  }
+  85% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes tether-fade-only {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tether-card-enter {
+  animation: tether-card-enter var(--dur-medium) var(--ease) backwards;
+  animation-delay: calc(var(--stagger-index, 0) * var(--stagger-load));
+}
+
+.tether-filament-sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+.tether-filament-sweep::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 38%;
+  background-image: var(--filament-sheen);
+  opacity: 0.65;
+  animation: tether-filament-sweep var(--sweep-loop) linear infinite;
+  pointer-events: none;
+}
+
+.tether-drift-glow {
+  animation: tether-drift-breathe var(--breathe-loop) ease-in-out infinite;
+}
+
+.tether-drift-node-appear {
+  animation: tether-drift-node-appear var(--dur-slow) var(--ease) 1;
+}
+
+.tether-filament-break {
+  animation: tether-filament-break var(--dur-slow) var(--ease) 1;
+}
+
+.tether-checking-dot {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  transform: translateY(-50%);
+  background-color: var(--ai);
+  box-shadow: var(--checking-dot-glow);
+  animation: tether-checking-travel 1.4s var(--ease) infinite;
+  pointer-events: none;
+}
+
+.tether-checking-dot-delayed {
+  animation-delay: 550ms;
+}
+
+.tether-step-enter {
+  animation: tether-step-slide-in var(--dur-base) var(--ease) both;
+}
+
+.tether-stepper-connector {
+  transform-origin: top;
+  animation: tether-stepper-draw var(--dur-medium) var(--ease) both;
+}
+
+.tether-tick-draw path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 0;
+  animation: tether-tick-draw var(--dur-base) var(--ease) both;
+}
+
+.tether-diagnosis-enter {
+  transform-origin: top;
+  animation: tether-diagnosis-expand var(--dur-medium) var(--ease) both;
+}
+
+.tether-badge-pop {
+  animation: tether-badge-pop var(--dur-medium) var(--ease) both;
+}
+
+.tether-check-stagger {
+  animation: tether-check-reveal var(--dur-base) var(--ease) both;
+  animation-delay: calc(var(--check-index, 0) * var(--stagger-check));
+}
+
+.tether-approve-progress {
+  position: relative;
+  overflow: hidden;
+}
+
+.tether-approve-progress::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 45%;
+  background-image: var(--filament-gradient);
+  animation: tether-progress-sweep 1.2s linear infinite;
+  pointer-events: none;
+}
+
+.tether-filament-heal-pulse {
+  transform-origin: left;
+  animation: tether-filament-heal var(--dur-heal) var(--ease) both;
+}
+
+.tether-node-heal-fill {
+  animation: tether-node-fill var(--dur-base) var(--ease) both;
+}
+
+.tether-pill-morph {
+  animation: tether-pill-morph var(--dur-medium) var(--ease) both;
+}
+
+.tether-error-shake {
+  animation: tether-error-shake var(--dur-base) var(--ease) 1;
+}
+
 /* Guarantee AG Studio grids keep clean height and never collapse */
 .ag-studio-grid-widget,
 .ag-studio-grid-widget .ag-root-wrapper {
@@ -134,6 +479,28 @@ body {
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-none);
   transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
+}
+
+.ag-studio-layout-widget {
+  animation: tether-card-enter var(--dur-medium) var(--ease) backwards;
+}
+.ag-studio-layout-widget:nth-child(1) {
+  animation-delay: calc(3 * var(--stagger-load));
+}
+.ag-studio-layout-widget:nth-child(2) {
+  animation-delay: calc(4 * var(--stagger-load));
+}
+.ag-studio-layout-widget:nth-child(3) {
+  animation-delay: calc(5 * var(--stagger-load));
+}
+.ag-studio-layout-widget:nth-child(4) {
+  animation-delay: calc(6 * var(--stagger-load));
+}
+.ag-studio-layout-widget:nth-child(5) {
+  animation-delay: calc(7 * var(--stagger-load));
+}
+.ag-studio-layout-widget:nth-child(6) {
+  animation-delay: calc(8 * var(--stagger-load));
 }
 
 .ag-studio-layout-widget-container:has([data-kpi-accent='positive']) {
@@ -183,6 +550,11 @@ body {
   background-color: color-mix(in srgb, var(--drift-soft) 100%, var(--bg-raised));
 }
 
+/* 7: Heal success mint flash across row cells (600ms) */
+.tether-local-orders-grid .ag-row.tether-just-healed-row .ag-cell {
+  animation: tether-cell-heal-flash var(--dur-heal) var(--ease) 1;
+}
+
 /* Calm empty overlay inside AG Studio widgets */
 .ag-studio-widget-no-data {
   color: var(--text-2);
@@ -195,6 +567,39 @@ body {
   .ag-studio-layout-widget-container,
   .tether-local-orders-grid .ag-cell-data-changed {
     transition: none !important;
+  }
+
+  .tether-filament-sweep::after,
+  .tether-checking-dot {
+    display: none !important;
+    animation: none !important;
+  }
+
+  .tether-drift-glow,
+  .tether-error-shake,
+  .tether-approve-progress::after {
+    animation: none !important;
+  }
+
+  .tether-card-enter,
+  .ag-studio-layout-widget,
+  .tether-step-enter,
+  .tether-diagnosis-enter,
+  .tether-badge-pop,
+  .tether-check-stagger,
+  .tether-pill-morph,
+  .tether-node-heal-fill {
+    animation: tether-fade-only var(--dur-fast) ease-out both !important;
+    animation-delay: 0ms !important;
+  }
+
+  .tether-stepper-connector,
+  .tether-filament-heal-pulse,
+  .tether-drift-node-appear,
+  .tether-filament-break,
+  .tether-tick-draw path,
+  .tether-local-orders-grid .ag-row.tether-just-healed-row .ag-cell {
+    animation: none !important;
   }
 }
 

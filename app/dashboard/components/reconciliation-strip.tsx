@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import type {
   TetherData,
   TetherDriftRow,
@@ -28,10 +28,12 @@ function EventNode({
   label,
   status,
   animateTransition = false,
+  justHealed = false,
 }: {
   label: string;
   status: NodeStatus;
   animateTransition?: boolean;
+  justHealed?: boolean;
 }) {
   const transitionClass = animateTransition
     ? 'transition-all duration-[var(--dur-heal)] ease-[var(--ease)] motion-reduce:transition-none'
@@ -41,13 +43,15 @@ function EventNode({
     return (
       <div
         data-node-state="complete"
-        className={`inline-flex shrink-0 items-center gap-2 rounded-[var(--radius-input)] border border-sync/45 bg-sync-soft px-3 py-1.5 text-xs font-medium text-fg ${transitionClass}`}
+        className={`inline-flex shrink-0 items-center gap-2 rounded-[var(--radius-input)] border border-sync/45 bg-sync-soft px-3 py-1.5 text-xs font-medium text-fg ${transitionClass} ${
+          justHealed ? 'tether-node-heal-fill' : ''
+        }`}
       >
         <span
           className={`inline-flex size-3.5 shrink-0 items-center justify-center rounded-full bg-sync text-on-accent ${transitionClass}`}
           aria-hidden
         >
-          <CheckIcon className="size-2.5" strokeWidth={2.2} />
+          <CheckIcon className={`size-2.5 ${justHealed ? 'tether-tick-draw' : ''}`} strokeWidth={2.2} />
         </span>
         <span className="whitespace-nowrap">{label}</span>
       </div>
@@ -58,7 +62,7 @@ function EventNode({
     return (
       <div
         data-node-state="missing"
-        className={`inline-flex shrink-0 items-center gap-2 rounded-[var(--radius-input)] border border-dashed border-drift bg-drift-soft px-3 py-1.5 text-xs font-medium text-drift ${transitionClass}`}
+        className={`tether-drift-node-appear inline-flex shrink-0 items-center gap-2 rounded-[var(--radius-input)] border border-dashed border-drift bg-drift-soft px-3 py-1.5 text-xs font-medium text-drift ${transitionClass}`}
       >
         <span
           className={`inline-flex size-3.5 shrink-0 items-center justify-center rounded-full border border-dashed border-drift bg-sunken ${transitionClass}`}
@@ -83,14 +87,18 @@ function EventNode({
 function FilamentConnector({
   status,
   animateTransition = false,
+  justHealed = false,
+  checkingLane,
 }: {
   status: 'complete' | 'missing' | 'pending';
   animateTransition?: boolean;
+  justHealed?: boolean;
+  checkingLane?: 'paypal' | 'local' | null;
 }) {
   if (status === 'missing') {
     return (
       <div
-        className="relative mx-2 hidden min-w-[28px] flex-1 items-center gap-1.5 sm:flex"
+        className="tether-filament-break relative mx-2 hidden min-w-[28px] flex-1 items-center gap-1.5 sm:flex"
         data-line-complete="false"
         aria-hidden
       >
@@ -99,6 +107,11 @@ function FilamentConnector({
           !
         </span>
         <div className="h-[1.5px] flex-1 border-t border-dashed border-drift/55" />
+        {checkingLane && (
+          <span
+            className={`tether-checking-dot ${checkingLane === 'local' ? 'tether-checking-dot-delayed' : ''}`}
+          />
+        )}
       </div>
     );
   }
@@ -109,16 +122,25 @@ function FilamentConnector({
 
   return (
     <div
-      className="relative mx-2 hidden h-[1.5px] min-w-[28px] flex-1 overflow-hidden rounded-full bg-line sm:block"
+      className={`relative mx-2 hidden h-[1.5px] min-w-[28px] flex-1 rounded-full sm:block ${
+        checkingLane ? 'bg-ai/35' : 'bg-line'
+      }`}
       data-line-complete={status === 'complete' ? 'true' : 'false'}
       aria-hidden
     >
       <div
-        className={`absolute inset-0 origin-left ${transitionClass} ${
-          status === 'complete' ? 'scale-x-100' : 'scale-x-0'
+        className={`absolute inset-0 origin-left overflow-hidden rounded-full ${transitionClass} ${
+          status === 'complete'
+            ? `scale-x-100 ${justHealed ? 'tether-filament-heal-pulse' : 'tether-filament-sweep'}`
+            : 'scale-x-0'
         }`}
         style={{ backgroundImage: 'var(--filament-gradient)' }}
       />
+      {checkingLane && (
+        <span
+          className={`tether-checking-dot ${checkingLane === 'local' ? 'tether-checking-dot-delayed' : ''}`}
+        />
+      )}
     </div>
   );
 }
@@ -148,6 +170,7 @@ export function ReconciliationStrip({
   paypalStatus,
   selectedOrderId,
   recentlyHealedOrderId,
+  isChecking = false,
   isLoading = false,
 }: {
   drift: TetherDriftRow[];
@@ -156,6 +179,7 @@ export function ReconciliationStrip({
   paypalStatus: TetherData['paypalStatus'];
   selectedOrderId?: string | null;
   recentlyHealedOrderId: string | null;
+  isChecking?: boolean;
   isLoading?: boolean;
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -189,7 +213,8 @@ export function ReconciliationStrip({
       <section
         aria-label="Order reconciliation strip"
         data-testid="reconciliation-strip"
-        className="flex min-w-0 flex-col justify-between gap-3 rounded-[var(--radius-card)] border border-line bg-surface p-5"
+        style={{ '--stagger-index': 2 } as CSSProperties}
+        className="tether-card-enter flex min-w-0 flex-col justify-between gap-3 rounded-[var(--radius-card)] border border-line bg-surface p-5"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -255,7 +280,11 @@ export function ReconciliationStrip({
       data-testid="reconciliation-strip"
       data-order-id={targetOrderId}
       data-drift-state={isDrifting ? 'drifting' : 'in-sync'}
-      className="flex min-w-0 flex-col justify-between gap-4 rounded-[var(--radius-card)] border border-line bg-surface p-5"
+      data-checking={isChecking ? 'true' : 'false'}
+      style={{ '--stagger-index': 2 } as CSSProperties}
+      className={`tether-card-enter flex min-w-0 flex-col justify-between gap-4 rounded-[var(--radius-card)] border bg-surface p-5 transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] ${
+        isChecking ? 'border-accent/55' : 'border-line'
+      }`}
     >
       {paypalStatus.error && (
         <div
@@ -306,7 +335,10 @@ export function ReconciliationStrip({
             {usdDecimals.format(amount)}
           </span>
 
-          <StatusPill variant={isLocalPaid ? 'PAID' : 'CREATED'} />
+          <StatusPill
+            variant={isLocalPaid ? 'PAID' : 'CREATED'}
+            className={justHealed ? 'tether-pill-morph' : ''}
+          />
           {isDrifting && <StatusPill variant="Drift" />}
         </div>
       </div>
@@ -323,15 +355,19 @@ export function ReconciliationStrip({
               label="Order approved"
               status={paypalApproved}
               animateTransition={justHealed}
+              justHealed={justHealed}
             />
             <FilamentConnector
               status={paypalConnectorStatus}
               animateTransition={justHealed}
+              justHealed={justHealed}
+              checkingLane={isChecking ? 'paypal' : null}
             />
             <EventNode
               label="Capture completed"
               status={paypalCapture}
               animateTransition={justHealed}
+              justHealed={justHealed}
             />
           </div>
         </div>
@@ -346,15 +382,19 @@ export function ReconciliationStrip({
               label="Order approved"
               status={localApproved}
               animateTransition={justHealed || Boolean(matchingDrift)}
+              justHealed={justHealed}
             />
             <FilamentConnector
               status={localConnectorStatus}
               animateTransition={true}
+              justHealed={justHealed}
+              checkingLane={isChecking ? 'local' : null}
             />
             <EventNode
               label="Capture completed"
               status={localCapture}
               animateTransition={true}
+              justHealed={justHealed}
             />
           </div>
         </div>
