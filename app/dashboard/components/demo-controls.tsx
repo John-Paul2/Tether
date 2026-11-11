@@ -19,14 +19,17 @@ export function DemoControlsPanel({
   localOrders,
   onFaultChanged,
   onOrderMutated,
+  disabled = false,
 }: {
   dropWebhooks: boolean;
   localOrders: TetherLocalOrderRow[];
   onFaultChanged: (drop: boolean) => void;
   onOrderMutated: () => void;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const [togglingFault, setTogglingFault] = useState(false);
 
@@ -55,7 +58,9 @@ export function DemoControlsPanel({
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        event.preventDefault();
         setOpen(false);
+        triggerRef.current?.focus();
       }
     };
     document.addEventListener('pointerdown', onPointerDown);
@@ -217,95 +222,101 @@ export function DemoControlsPanel({
   };
 
   return (
-    <section
-      ref={containerRef}
-      aria-label="Demo controls"
-      className="relative mx-4 mt-2"
-    >
-      {/* Slim collapsed bar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-[16px] bg-warning-bg px-4 py-2 text-warning-content shadow-[var(--card-shadow)]">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-controls="demo-controls-popover"
-            onClick={() => setOpen((current) => !current)}
-            className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-[16px] bg-warning px-3 py-1.5 text-xs font-semibold text-warning-content transition-colors hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active sm:text-sm"
-          >
-            <AlertIcon className="size-4 shrink-0" />
-            <span>Demo controls</span>
-            <ChevronDownIcon
-              className={`size-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
-            />
-          </button>
-          <span className="hidden text-xs font-medium text-warning-content/90 sm:inline">
-            Labelled fault injection
-            <span className="hidden 2xl:inline"> · PayPal sandbox</span>
-          </span>
-        </div>
+    <div ref={containerRef} className="relative">
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        aria-expanded={open}
+        aria-controls="demo-controls-popover"
+        aria-haspopup="dialog"
+        aria-label={
+          dropWebhooks
+            ? 'DEMO controls (fault injection active: dropping webhooks)'
+            : 'DEMO controls'
+        }
+        onClick={() => setOpen((current) => !current)}
+        className={`inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold tracking-wide transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50 ${
+          open
+            ? 'border-warn bg-warn-soft text-warn'
+            : 'border-warn/80 bg-transparent text-warn hover:border-warn hover:bg-warn-soft'
+        }`}
+      >
+        <AlertIcon className="size-3.5 shrink-0" />
+        <span>DEMO</span>
+        {dropWebhooks && (
+          <span
+            className="size-1.5 shrink-0 rounded-full bg-drift"
+            title="Dropping incoming webhooks"
+            aria-hidden
+          />
+        )}
+        <ChevronDownIcon
+          className={`size-3.5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
 
-        {/* TODO(demo-controls): Place a one-click "Load a drifting order" button next to the webhook switch indicator in a later step. */}
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-canvas px-2.5 py-1 text-xs font-semibold text-ink">
-            <span className="text-body">Simulate dropped webhooks:</span>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                dropWebhooks
-                  ? 'bg-negative-bg text-on-primary'
-                  : 'bg-positive-bg text-positive-deep'
-              }`}
-            >
-              <span
-                className={`size-1.5 rounded-full ${
-                  dropWebhooks ? 'bg-negative' : 'bg-positive'
-                }`}
-                aria-hidden
-              />
-              {dropWebhooks ? 'Dropping' : 'Normal'}
-            </span>
-          </span>
-        </div>
-      </div>
-
-      {/* Expanded popover holding create / capture / toggle controls */}
       {open && (
         <div
           id="demo-controls-popover"
-          role="region"
-          aria-label="Demo controls drawer"
-          className="absolute left-0 right-0 top-full z-40 mt-2 max-h-[80vh] overflow-y-auto rounded-[16px] border border-warning-deep/30 bg-warning-bg p-4 text-warning-content shadow-[var(--card-shadow-hover)]"
+          role="dialog"
+          aria-label="Demo controls"
+          className="fixed right-3 top-[64px] z-40 max-h-[calc(100dvh-80px)] w-[min(480px,calc(100vw-24px))] overflow-y-auto rounded-[var(--radius-card)] border border-line-strong bg-raised p-4 text-fg shadow-[var(--shadow-popover)] sm:absolute sm:right-0 sm:top-full sm:mt-2"
         >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1.5">
+          {/* Popover header */}
+          <div className="flex items-start justify-between gap-3 border-b border-line pb-3">
+            <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-warning px-3 py-1 text-xs font-semibold text-warning-content">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-warn/40 bg-warn-soft px-2.5 py-0.5 text-xs font-semibold text-warn">
                   <AlertIcon className="size-3.5" />
-                  Demo controls
+                  DEMO
                 </span>
-                <span className="text-sm font-semibold text-warning-content">
-                  Labelled fault injection for the PayPal sandbox demo
+                <span className="text-xs font-medium text-fg-2">
+                  Fault injection · PayPal sandbox
                 </span>
               </div>
-              <p className="max-w-3xl text-sm text-warning-content">
-                Toggling <strong>Simulate dropped webhooks</strong> is a labelled fault injection
-                for the demo:{' '}
-                <code className="rounded bg-canvas/70 px-1.5 py-0.5 text-xs">/api/webhook</code>{' '}
-                acknowledges PayPal with HTTP 200 without recording the event or updating{' '}
-                <code className="rounded bg-canvas/70 px-1.5 py-0.5 text-xs">local_orders</code>,
-                so you can create real sandbox state drift and watch Tether diagnose and heal it.
+              <p className="text-xs leading-relaxed text-fg-3">
+                Staging controls only. Dropping webhooks makes{' '}
+                <code className="font-mono text-fg-2">/api/webhook</code> return HTTP 200 without
+                updating <code className="font-mono text-fg-2">local_orders</code>.
               </p>
             </div>
+            <button
+              type="button"
+              aria-label="Close Demo controls"
+              onClick={() => {
+                setOpen(false);
+                triggerRef.current?.focus();
+              }}
+              className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-fg-2 transition-colors hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              <CloseIcon className="size-4" />
+            </button>
+          </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-3 rounded-[16px] bg-canvas px-4 py-2.5 text-ink">
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-ink">Simulate dropped webhooks</p>
-                  <p className="text-xs text-mute">
-                    {dropWebhooks
-                      ? 'Active: dropping incoming webhooks'
-                      : 'Off: normal webhook handling'}
-                  </p>
-                </div>
+          <div className="mt-3 space-y-3">
+            {/* TODO(demo-controls): Make "Load a drifting order" the first item here once implemented; do not build it yet. */}
+
+            {/* Fault injection toggle */}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] border border-line bg-surface p-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-fg">Simulate dropped webhooks</p>
+                <p className="text-xs text-fg-3">
+                  {dropWebhooks
+                    ? 'Active: dropping incoming webhooks'
+                    : 'Off: normal webhook handling'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Badge tone={dropWebhooks ? 'negative' : 'positive'}>
+                  <span
+                    className={`size-1.5 rounded-full ${
+                      dropWebhooks ? 'bg-drift' : 'bg-sync'
+                    }`}
+                    aria-hidden
+                  />
+                  {dropWebhooks ? 'Dropping' : 'Normal'}
+                </Badge>
                 <button
                   type="button"
                   role="switch"
@@ -313,59 +324,50 @@ export function DemoControlsPanel({
                   aria-label="Simulate dropped webhooks"
                   disabled={togglingFault}
                   onClick={handleToggleFault}
-                  className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer items-center rounded-full px-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active disabled:cursor-not-allowed disabled:opacity-60 ${
-                    dropWebhooks ? 'bg-negative' : 'bg-canvas-soft'
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border px-0.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60 ${
+                    dropWebhooks
+                      ? 'border-drift bg-drift'
+                      : 'border-line-strong bg-sunken'
                   }`}
                 >
                   <span
-                    className={`inline-block size-5 rounded-full bg-canvas transition-transform ${
-                      dropWebhooks ? 'translate-x-6' : 'translate-x-0'
+                    className={`inline-block size-4 rounded-full bg-fg transition-transform ${
+                      dropWebhooks ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
                 </button>
-                <Badge tone={dropWebhooks ? 'negative' : 'positive'}>
-                  {dropWebhooks ? 'Dropping' : 'Normal'}
-                </Badge>
+              </div>
+            </div>
+
+            {/* Step 1: Create sandbox order */}
+            <div className="space-y-2 rounded-[var(--radius-card)] border border-line bg-surface p-3">
+              <p className="text-xs font-semibold text-fg-2">1. Create sandbox order</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <label htmlFor="demo-order-amount" className="text-xs font-medium text-fg-3">
+                  USD
+                </label>
+                <input
+                  id="demo-order-amount"
+                  type="text"
+                  inputMode="decimal"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="h-9 w-24 rounded-[var(--radius-input)] border border-line-strong bg-sunken px-3 font-mono text-sm text-fg tabular-nums outline-none focus:border-accent"
+                />
+                <Button
+                  variant="tertiary"
+                  size="sm"
+                  disabled={creatingOrder}
+                  onClick={handleCreateOrder}
+                >
+                  {creatingOrder ? 'Creating order…' : 'Create sandbox order'}
+                </Button>
               </div>
 
-              <button
-                type="button"
-                aria-label="Close Demo controls"
-                onClick={() => setOpen(false)}
-                className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-canvas/80 text-warning-content transition-colors hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active"
-              >
-                <CloseIcon className="size-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 gap-3 border-t border-warning-deep/20 pt-3 2xl:grid-cols-2">
-            {/* Step 1: Create sandbox order */}
-            <div className="flex flex-wrap items-center gap-2 rounded-[16px] bg-canvas p-3 text-ink">
-              <label htmlFor="demo-order-amount" className="text-xs font-semibold text-mute">
-                USD amount
-              </label>
-              <input
-                id="demo-order-amount"
-                type="text"
-                inputMode="decimal"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-24 rounded-[12px] border border-ink bg-canvas px-3 py-1.5 text-sm font-semibold text-ink tabular-nums"
-              />
-              <Button
-                variant="tertiary"
-                size="sm"
-                disabled={creatingOrder}
-                onClick={handleCreateOrder}
-              >
-                {creatingOrder ? 'Creating order…' : 'Create sandbox order'}
-              </Button>
-
               {createdOrder && (
-                <div className="mt-1 flex w-full flex-wrap items-center justify-between gap-2 rounded-[12px] bg-canvas-soft px-3 py-2 text-xs">
-                  <span className="font-semibold text-ink tabular-nums">
-                    Order <code className="font-mono">{createdOrder.order_id}</code> ($
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-input)] border border-line bg-sunken px-3 py-2 text-xs">
+                  <span className="font-medium text-fg tabular-nums">
+                    Order <code className="font-mono text-paypal">{createdOrder.order_id}</code> ($
                     {createdOrder.amount})
                   </span>
                   {createdOrder.approve_link ? (
@@ -373,85 +375,88 @@ export function DemoControlsPanel({
                       href={createdOrder.approve_link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary-active hover:underline"
+                      className="inline-flex items-center gap-1 font-semibold text-accent hover:text-accent-strong hover:underline"
                     >
                       Approve in PayPal sandbox
                       <ExternalLinkIcon className="size-3.5" />
                     </a>
                   ) : (
-                    <span className="text-mute">No approve link returned</span>
+                    <span className="text-fg-3">No approve link returned</span>
                   )}
                 </div>
               )}
             </div>
 
             {/* Step 2: Capture sandbox order */}
-            <div className="flex flex-wrap items-center gap-2 rounded-[16px] bg-canvas p-3 text-ink">
-              <label htmlFor="demo-capture-order-id" className="text-xs font-semibold text-mute">
-                Order ID
-              </label>
-              <input
-                id="demo-capture-order-id"
-                type="text"
-                list="unpaid-local-orders"
-                placeholder="e.g. 12N95587M6071792S"
-                value={captureOrderId}
-                onChange={(e) => setCaptureOrderId(e.target.value)}
-                className="min-w-[170px] flex-1 rounded-[12px] border border-ink bg-canvas px-3 py-1.5 font-mono text-sm text-ink"
-              />
-              <datalist id="unpaid-local-orders">
-                {unpaidOrders.map((o) => (
-                  <option key={o.order_id} value={o.order_id}>
-                    {o.order_id} (${o.amount.toFixed(2)} · {o.local_status})
-                  </option>
-                ))}
-              </datalist>
-              <Button
-                variant="tertiary"
-                size="sm"
-                disabled={capturing || !captureOrderId.trim()}
-                onClick={handleCaptureOrder}
-              >
-                {capturing ? 'Capturing…' : 'Capture order'}
-              </Button>
-            </div>
-          </div>
-
-          {slowNotice && (
-            <p className="mt-3 rounded-[12px] bg-canvas px-4 py-2 text-xs font-semibold text-warning-content">
-              {slowNotice}
-            </p>
-          )}
-
-          {statusMessage && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[12px] bg-canvas px-4 py-2.5 text-sm text-ink">
-              <div className="flex items-center gap-2">
-                <Badge tone={statusMessage.tone}>
-                  {statusMessage.tone === 'positive'
-                    ? 'Ready'
-                    : statusMessage.tone === 'warning'
-                      ? 'Note'
-                      : statusMessage.tone === 'negative'
-                        ? 'Error'
-                        : 'Created'}
-                </Badge>
-                <span className="text-sm text-body">{statusMessage.text}</span>
-              </div>
-              {createdOrder?.approve_link && (
-                <a
-                  href={createdOrder.approve_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+            <div className="space-y-2 rounded-[var(--radius-card)] border border-line bg-surface p-3">
+              <p className="text-xs font-semibold text-fg-2">2. Capture sandbox order</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <label htmlFor="demo-capture-order-id" className="sr-only">
+                  Order ID
+                </label>
+                <input
+                  id="demo-capture-order-id"
+                  type="text"
+                  list="unpaid-local-orders"
+                  placeholder="e.g. 12N95587M6071792S"
+                  value={captureOrderId}
+                  onChange={(e) => setCaptureOrderId(e.target.value)}
+                  className="h-9 min-w-[170px] flex-1 rounded-[var(--radius-input)] border border-line-strong bg-sunken px-3 font-mono text-sm text-fg outline-none focus:border-accent"
+                />
+                <datalist id="unpaid-local-orders">
+                  {unpaidOrders.map((o) => (
+                    <option key={o.order_id} value={o.order_id}>
+                      {o.order_id} (${o.amount.toFixed(2)} · {o.local_status})
+                    </option>
+                  ))}
+                </datalist>
+                <Button
+                  variant="tertiary"
+                  size="sm"
+                  disabled={capturing || !captureOrderId.trim()}
+                  onClick={handleCaptureOrder}
                 >
-                  {createdOrder.approve_link}
-                  <ExternalLinkIcon className="size-3.5" />
-                </a>
-              )}
+                  {capturing ? 'Capturing…' : 'Capture order'}
+                </Button>
+              </div>
             </div>
-          )}
+
+            {slowNotice && (
+              <p className="rounded-[var(--radius-input)] border border-warn/30 bg-warn-soft px-3 py-2 text-xs font-medium text-warn">
+                {slowNotice}
+              </p>
+            )}
+
+            {statusMessage && (
+              <div className="space-y-1.5 rounded-[var(--radius-input)] border border-line bg-surface px-3 py-2.5 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone={statusMessage.tone}>
+                    {statusMessage.tone === 'positive'
+                      ? 'Ready'
+                      : statusMessage.tone === 'warning'
+                        ? 'Note'
+                        : statusMessage.tone === 'negative'
+                          ? 'Error'
+                          : 'Created'}
+                  </Badge>
+                  <span className="leading-relaxed text-fg-2">{statusMessage.text}</span>
+                </div>
+                {createdOrder?.approve_link && (
+                  <a
+                    href={createdOrder.approve_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-mono text-xs font-medium text-accent hover:text-accent-strong hover:underline"
+                  >
+                    {createdOrder.approve_link}
+                    <ExternalLinkIcon className="size-3.5 shrink-0" />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
-    </section>
+    </div>
   );
 }

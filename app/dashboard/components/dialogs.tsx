@@ -6,6 +6,8 @@ import { Button, Dialog } from './ui/ui';
 export type DashboardDialog =
   | { kind: 'unsaved'; then: () => void }
   | { kind: 'create' }
+  | { kind: 'rename-report'; report: SavedReport }
+  | { kind: 'rename-page'; pageId: string; title: string }
   | { kind: 'delete'; report: SavedReport }
   | { kind: 'reset' }
   | null;
@@ -82,7 +84,7 @@ export function CreateReportDialog({
         }}
       >
         <p>Start from a blank page and build it with the widgets in Compose.</p>
-        <label className="mt-4 block text-sm font-semibold text-ink" htmlFor="report-name">
+        <label className="mt-4 block text-sm font-semibold text-fg" htmlFor="report-name">
           Report name
         </label>
         <input
@@ -91,7 +93,65 @@ export function CreateReportDialog({
           autoFocus
           defaultValue="Untitled report"
           onFocus={(e) => e.currentTarget.select()}
-          className="mt-1 h-11 w-full rounded-[12px] border border-ink bg-canvas px-4 text-base text-ink outline-none"
+          className="mt-1.5 h-10 w-full rounded-[var(--radius-input)] border border-line-strong bg-sunken px-3.5 text-sm text-fg outline-none focus:border-accent"
+        />
+      </form>
+    </Dialog>
+  );
+}
+
+export function RenameDialog({
+  open,
+  title,
+  label,
+  initialValue,
+  onClose,
+  onSave,
+}: {
+  open: boolean;
+  title: string;
+  label: string;
+  initialValue: string;
+  onClose: () => void;
+  onSave: (value: string) => void;
+}) {
+  const formId = 'rename-item';
+  return (
+    <Dialog
+      open={open}
+      title={title}
+      onClose={onClose}
+      actions={
+        <>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="primary" size="sm" type="submit" form={formId}>
+            Save
+          </Button>
+        </>
+      }
+    >
+      <form
+        id={formId}
+        key={initialValue}
+        onSubmit={(e) => {
+          e.preventDefault();
+          const next = String(new FormData(e.currentTarget).get('title') ?? '').trim();
+          if (next) onSave(next);
+          else onClose();
+        }}
+      >
+        <label className="block text-sm font-semibold text-fg" htmlFor="rename-input">
+          {label}
+        </label>
+        <input
+          id="rename-input"
+          name="title"
+          autoFocus
+          defaultValue={initialValue}
+          onFocus={(e) => e.currentTarget.select()}
+          className="mt-1.5 h-10 w-full rounded-[var(--radius-input)] border border-line-strong bg-sunken px-3.5 text-sm text-fg outline-none focus:border-accent"
         />
       </form>
     </Dialog>

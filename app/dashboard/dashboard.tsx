@@ -12,10 +12,10 @@ import {
 import { AgStudio, AgStudioProvider } from 'ag-studio-react';
 import type { TetherData } from '@/lib/tether-data';
 import { AppShell } from './components/app-shell';
-import { DemoControlsPanel } from './components/demo-controls';
 import {
   CreateReportDialog,
   DeleteReportDialog,
+  RenameDialog,
   ResetDemoDialog,
   UnsavedChangesDialog,
   type DashboardDialog,
@@ -23,7 +23,6 @@ import {
 import { DoctorPanel } from './components/doctor-panel';
 import { EmptyData } from './components/empty-data';
 import { ReconciliationStrip } from './components/reconciliation-strip';
-import { ReportHeader } from './components/report-header';
 import {
   blankReport,
   copyOf,
@@ -36,8 +35,8 @@ import {
   type SavedReport,
 } from './reports-store';
 import { pagesFor, pageTitlesFor } from './page-titles';
-import { ReportsSidebar } from './components/sidebar';
-import { ContentSkeleton, SidebarSkeleton } from './components/skeleton';
+import { ContentSkeleton } from './components/skeleton';
+import { TopBar } from './components/top-bar';
 import * as reportState from './report-state';
 import { buildAi } from './studio/ai';
 import { buildStudioData, hasData } from './studio/data';
@@ -67,11 +66,50 @@ export function Dashboard(props: DashboardProps) {
     () => true,
     () => false,
   );
-  return inBrowser ? (
-    <ReportsDashboard {...props} />
-  ) : (
+  if (inBrowser) {
+    return <ReportsDashboard {...props} />;
+  }
+
+  const fallbackReport = defaultReport();
+  const fallbackPages = pagesFor(fallbackReport);
+
+  return (
     <AppShell
-      sidebar={<SidebarSkeleton />}
+      topBar={
+        <TopBar
+          reports={[fallbackReport]}
+          activeReport={fallbackReport}
+          pages={fallbackPages}
+          selectedPageId={fallbackReport.state.selectedPageId}
+          asOf={props.data.asOf}
+          paypalSlow={props.data.paypalStatus.slow}
+          paypalError={props.data.paypalStatus.error}
+          dropWebhooks={props.data.dropWebhooks}
+          localOrders={props.data.local_orders}
+          editing={false}
+          ready={false}
+          pageIsEmpty={false}
+          canUndo={false}
+          canRedo={false}
+          onSelectPage={() => {}}
+          onSelectReport={() => {}}
+          onAddPage={() => {}}
+          onNewReport={() => {}}
+          onEditingChange={() => {}}
+          onResetReport={() => {}}
+          onRenameReport={() => {}}
+          onDuplicateReport={() => {}}
+          onDeleteReport={() => {}}
+          onRenamePage={() => {}}
+          onRemovePage={() => {}}
+          onUndo={() => {}}
+          onRedo={() => {}}
+          onDiscard={() => {}}
+          onSave={() => {}}
+          onFaultChanged={() => {}}
+          onOrderMutated={() => {}}
+        />
+      }
       doctorPanel={
         <DoctorPanel
           initialDrift={props.data.drift}
@@ -80,12 +118,6 @@ export function Dashboard(props: DashboardProps) {
         />
       }
     >
-      <DemoControlsPanel
-        dropWebhooks={props.data.dropWebhooks}
-        localOrders={props.data.local_orders}
-        onFaultChanged={() => {}}
-        onOrderMutated={() => {}}
-      />
       <ContentSkeleton />
     </AppShell>
   );
@@ -268,27 +300,52 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
 
   return (
     <AppShell
-      sidebar={
-        <ReportsSidebar
+      topBar={
+        <TopBar
           reports={reports}
-          activeId={saved.id}
-          activePages={pages}
+          activeReport={saved}
+          pages={pages}
           selectedPageId={state.selectedPageId}
+          asOf={data.asOf}
+          paypalSlow={data.paypalStatus.slow}
+          paypalError={data.paypalStatus.error}
+          dropWebhooks={dropWebhooks}
+          localOrders={data.local_orders}
           editing={editing}
           ready={studioState !== null}
-          onSelectReport={openReport}
+          pageIsEmpty={studioState !== null && !reportState.pageHasWidgets(state)}
+          canUndo={history.canUndo}
+          canRedo={history.canRedo}
           onSelectPage={selectPage}
-          onAddPage={() => (apiRef.current ? addPage() : undefined)}
-          onRemovePage={removePage}
-          onRenamePage={renamePage}
-          onRenameReport={renameReport}
-          onCreate={() => guard(() => setDialog({ kind: 'create' }))}
-          onDuplicate={duplicateReport}
-          onDelete={(id) => {
-            const report = findReport(reports, id);
-            if (report) setDialog({ kind: 'delete', report });
+          onSelectReport={openReport}
+          onAddPage={() => {
+            if (apiRef.current) addPage();
           }}
-          onReset={() => setDialog({ kind: 'reset' })}
+          onNewReport={() => guard(() => setDialog({ kind: 'create' }))}
+          onEditingChange={(next) =>
+            next ? changeMode('edit') : guard(() => changeMode('view'))
+          }
+          onResetReport={() => setDialog({ kind: 'reset' })}
+          onRenameReport={() => setDialog({ kind: 'rename-report', report: saved })}
+          onDuplicateReport={() => duplicateReport(saved.id)}
+          onDeleteReport={() => setDialog({ kind: 'delete', report: saved })}
+          onRenamePage={(pageId, title) => {
+            const targetId = pageId ?? state.selectedPageId;
+            const targetTitle =
+              title ?? pages.find((p) => p.id === targetId)?.title ?? 'Page';
+            setDialog({ kind: 'rename-page', pageId: targetId, title: targetTitle });
+          }}
+          onRemovePage={() => removePage(state.selectedPageId)}
+          onUndo={() => apiRef.current?.undo()}
+          onRedo={() => apiRef.current?.redo()}
+          onDiscard={discard}
+          onSave={save}
+          onFaultChanged={(drop) => {
+            setDropOverride({ asOf: data.asOf, value: drop });
+            router.refresh();
+          }}
+          onOrderMutated={refreshAllData}
+          onRefreshStudio={() => apiRef.current?.reload()}
         />
       }
       doctorPanel={
@@ -302,35 +359,6 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
         />
       }
     >
-      <ReportHeader
-        reportName={saved.name}
-        pageTitle={pages.find((p) => p.id === state.selectedPageId)?.title}
-        asOf={data.asOf}
-        paypalSlow={data.paypalStatus.slow}
-        paypalError={data.paypalStatus.error}
-        editing={editing}
-        pageIsEmpty={studioState !== null && !reportState.pageHasWidgets(state)}
-        canUndo={history.canUndo}
-        canRedo={history.canRedo}
-        onUndo={() => apiRef.current?.undo()}
-        onRedo={() => apiRef.current?.redo()}
-        onSave={save}
-        onDiscard={discard}
-        onEditingChange={(next) =>
-          next ? changeMode('edit') : guard(() => changeMode('view'))
-        }
-      />
-
-      <DemoControlsPanel
-        dropWebhooks={dropWebhooks}
-        localOrders={data.local_orders}
-        onFaultChanged={(drop) => {
-          setDropOverride({ asOf: data.asOf, value: drop });
-          router.refresh();
-        }}
-        onOrderMutated={refreshAllData}
-      />
-
       {showReconciliationStrip && (
         <ReconciliationStrip
           drift={data.drift}
@@ -402,6 +430,27 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
         onCreate={(name) => {
           setDialog(null);
           createReport(name);
+        }}
+      />
+      <RenameDialog
+        open={dialog?.kind === 'rename-report' || dialog?.kind === 'rename-page'}
+        title={dialog?.kind === 'rename-page' ? 'Rename page' : 'Rename report'}
+        label={dialog?.kind === 'rename-page' ? 'Page name' : 'Report name'}
+        initialValue={
+          dialog?.kind === 'rename-report'
+            ? dialog.report.name
+            : dialog?.kind === 'rename-page'
+              ? dialog.title
+              : ''
+        }
+        onClose={() => setDialog(null)}
+        onSave={(value) => {
+          if (dialog?.kind === 'rename-report') {
+            renameReport(dialog.report.id, value);
+          } else if (dialog?.kind === 'rename-page') {
+            renamePage(dialog.pageId, value);
+          }
+          setDialog(null);
         }}
       />
       <DeleteReportDialog

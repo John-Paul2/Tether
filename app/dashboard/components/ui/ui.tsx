@@ -1,29 +1,33 @@
 'use client';
 
-import { useEffect, useEffectEvent, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import {
+  useEffect,
+  useEffectEvent,
+  useRef,
+  type ComponentProps,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 
-// Tether UI building blocks following DESIGN.md:
-// - 24px radius (rounded-[24px]) on buttons and cards
-// - Primary button: #0070E0 (--primary), white label (--on-primary), hover #003087 (--primary-active),
-//   disabled state is --canvas-soft with --mute text
-// - Secondary button: --canvas-soft fill, --ink text
-// - Tertiary button: --canvas fill, 1px --ink border, --ink text
-// - Pill badges: positive, info, warning, negative
-// - No drop shadows; elevation comes from surface contrast (--canvas on --canvas-soft)
+// Tether Noir UI primitives (TETHER_THEME_AND_DESIGN.md):
+// - 999px radius (rounded-full) on buttons and pills, 12px on cards/menus/dialogs
+// - Primary button: single filled action (--accent fill, dark --text-on-accent text)
+// - Secondary/tertiary: surface/raised with 1px --border / --border-strong
+// - Soft-tint badges with full-strength state text
 
 type Variant = 'primary' | 'secondary' | 'tertiary' | 'ghost' | 'danger';
 
 const VARIANTS: Record<Variant, string> = {
   primary:
-    'bg-primary text-on-primary hover:bg-primary-active disabled:bg-canvas-soft disabled:text-mute',
+    'bg-accent text-on-accent hover:bg-accent-strong disabled:border disabled:border-line disabled:bg-transparent disabled:text-fg-3',
   secondary:
-    'bg-canvas-soft text-ink hover:bg-primary-pale disabled:bg-canvas-soft disabled:text-mute',
+    'border border-line bg-raised text-fg hover:border-line-strong hover:bg-surface disabled:border-line disabled:bg-surface disabled:text-fg-3',
   tertiary:
-    'border border-ink bg-canvas text-ink hover:bg-primary-pale disabled:border-canvas-soft disabled:text-mute',
+    'border border-line-strong bg-surface text-fg hover:bg-raised disabled:border-line disabled:text-fg-3',
   ghost:
-    'text-primary hover:bg-primary-pale disabled:text-mute',
+    'text-fg-2 hover:bg-raised hover:text-fg disabled:text-fg-3',
   danger:
-    'bg-negative text-on-primary hover:bg-negative-deep disabled:bg-canvas-soft disabled:text-mute',
+    'bg-drift text-on-accent hover:brightness-110 disabled:border disabled:border-line disabled:bg-transparent disabled:text-fg-3',
 };
 
 export function Button({
@@ -31,15 +35,15 @@ export function Button({
   size = 'md',
   className = '',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: 'sm' | 'md' }) {
+}: ComponentProps<'button'> & { variant?: Variant; size?: 'sm' | 'md' }) {
   const sizing =
     size === 'sm'
-      ? 'px-4 py-2 text-sm leading-5'
-      : 'px-6 py-3 text-base leading-6';
+      ? 'px-3.5 py-1.5 text-sm leading-5'
+      : 'px-5 py-2.5 text-base leading-6';
   return (
     <button
       type="button"
-      className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-[24px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active disabled:cursor-not-allowed ${sizing} ${VARIANTS[variant]} ${className}`}
+      className={`inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed ${sizing} ${VARIANTS[variant]} ${className}`}
       {...props}
     />
   );
@@ -49,13 +53,13 @@ export function IconButton({
   label,
   className = '',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
+}: ComponentProps<'button'> & { label: string }) {
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
-      className={`inline-flex size-9 shrink-0 items-center justify-center rounded-full text-ink transition-colors hover:bg-primary-pale focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-active disabled:cursor-not-allowed disabled:text-mute disabled:hover:bg-transparent ${className}`}
+      className={`inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-fg-2 transition-colors hover:bg-raised hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:text-fg-3 disabled:hover:bg-transparent ${className}`}
       {...props}
     />
   );
@@ -64,10 +68,10 @@ export function IconButton({
 export type BadgeTone = 'positive' | 'info' | 'warning' | 'negative';
 
 const BADGE_STYLES: Record<BadgeTone, string> = {
-  positive: 'bg-positive-bg text-positive-deep',
-  info: 'bg-primary-pale text-primary-active',
-  warning: 'bg-warning-bg text-warning-content',
-  negative: 'bg-negative-bg text-on-primary',
+  positive: 'bg-sync-soft text-sync',
+  info: 'bg-ai-soft text-ai',
+  warning: 'bg-warn-soft text-warn',
+  negative: 'bg-drift-soft text-drift',
 };
 
 export function Badge({
@@ -81,7 +85,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold leading-5 ${BADGE_STYLES[tone]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold leading-5 ${BADGE_STYLES[tone]} ${className}`}
     >
       {children}
     </span>
@@ -114,13 +118,13 @@ export function Dialog({
       ref={ref}
       onClose={onClose}
       onClick={(event) => event.target === ref.current && onClose()}
-      className="m-auto w-[min(460px,calc(100vw-32px))] rounded-[24px] border border-canvas-soft bg-canvas p-0 font-sans text-ink backdrop:bg-ink/40"
+      className="m-auto w-[min(460px,calc(100vw-32px))] rounded-[var(--radius-card)] border border-line-strong bg-raised p-0 font-sans text-fg shadow-[var(--shadow-popover)] backdrop:bg-[var(--scrim)]"
     >
       {open && (
         <div className="p-6">
-          <h2 className="text-xl font-semibold tracking-[-0.2px] text-ink">{title}</h2>
-          <div className="mt-3 text-base text-body">{children}</div>
-          <div className="mt-6 flex flex-wrap justify-end gap-3">{actions}</div>
+          <h2 className="type-h2 text-fg">{title}</h2>
+          <div className="mt-3 text-sm leading-relaxed text-fg-2">{children}</div>
+          <div className="mt-6 flex flex-wrap justify-end gap-2.5">{actions}</div>
         </div>
       )}
     </dialog>
@@ -130,34 +134,84 @@ export function Dialog({
 export function Menu({
   open,
   onClose,
+  triggerRef,
+  align = 'right',
+  label,
+  className = '',
   children,
 }: {
   open: boolean;
   onClose: () => void;
+  triggerRef?: RefObject<HTMLElement | null>;
+  align?: 'left' | 'right';
+  label?: string;
+  className?: string;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const close = useEffectEvent(onClose);
+
   useEffect(() => {
     if (!open) return;
+
+    const items = () =>
+      Array.from(
+        ref.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not([disabled])') ?? [],
+      );
+
+    requestAnimationFrame(() => {
+      items()[0]?.focus();
+    });
+
     const onPointer = (event: PointerEvent) => {
-      if (!ref.current?.contains(event.target as Node)) close();
+      const target = event.target as Node;
+      if (!ref.current?.contains(target) && !triggerRef?.current?.contains(target)) {
+        close();
+      }
     };
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && close();
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        close();
+        triggerRef?.current?.focus();
+        return;
+      }
+      const list = items();
+      if (list.length === 0) return;
+      const idx = list.indexOf(document.activeElement as HTMLButtonElement);
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        list[(idx + 1) % list.length]?.focus();
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        list[(idx - 1 + list.length) % list.length]?.focus();
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        list[0]?.focus();
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        list[list.length - 1]?.focus();
+      }
+    };
+
     document.addEventListener('pointerdown', onPointer);
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('pointerdown', onPointer);
       document.removeEventListener('keydown', onKey);
     };
-  }, [open]);
+  }, [open, triggerRef]);
 
   if (!open) return null;
   return (
     <div
       ref={ref}
       role="menu"
-      className="absolute right-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-[16px] border border-canvas-soft bg-canvas py-1.5"
+      aria-label={label}
+      className={`absolute top-full z-30 mt-2 w-56 overflow-hidden rounded-[var(--radius-card)] border border-line-strong bg-raised py-1.5 shadow-[var(--shadow-popover)] ${
+        align === 'left' ? 'left-0' : 'right-0'
+      } ${className}`}
     >
       {children}
     </div>
@@ -166,16 +220,23 @@ export function Menu({
 
 export function MenuItem({
   danger,
+  className = '',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { danger?: boolean }) {
+}: ComponentProps<'button'> & { danger?: boolean }) {
   return (
     <button
       type="button"
       role="menuitem"
-      className={`block w-full px-4 py-2 text-left text-sm font-semibold hover:bg-primary-pale focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary-active ${
-        danger ? 'text-negative' : 'text-ink'
-      }`}
+      className={`flex w-full cursor-pointer items-center justify-between gap-2 px-3.5 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45 ${
+        danger
+          ? 'text-drift hover:bg-drift-soft disabled:hover:bg-transparent'
+          : 'text-fg hover:bg-surface disabled:hover:bg-transparent'
+      } ${className}`}
       {...props}
     />
   );
+}
+
+export function MenuDivider() {
+  return <div role="separator" className="my-1.5 border-t border-line" />;
 }

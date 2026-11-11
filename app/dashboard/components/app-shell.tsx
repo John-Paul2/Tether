@@ -1,68 +1,26 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { AnchorIcon, LinkChainIcon } from './ui/icons';
 
-// The Tether app frame (DESIGN.md):
-// - White nav-bar (--canvas) with Tether name + small anchor/link icon and NO logos.
-// - Plain-text note: "Uses PayPal sandbox APIs".
-// - Cool-tinted page surface (--canvas-soft) with white cards (--canvas) on top.
-// - Responsive down to 375px width; Doctor panel sits beside the Studio canvas on desktop
-//   and stacks below the dashboard on mobile.
-
-function TetherHeader() {
-  return (
-    <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-canvas-soft bg-canvas px-6 py-2.5 text-sm font-semibold text-ink">
-      <div className="flex items-center gap-3">
-        <span
-          className="inline-flex size-9 items-center justify-center rounded-full bg-primary-pale text-primary"
-          aria-hidden
-        >
-          <AnchorIcon className="size-5" />
-        </span>
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-          <span className="font-display text-2xl font-extrabold tracking-tight text-ink">
-            Tether
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-xs font-normal text-mute">
-            <LinkChainIcon className="size-3.5 text-primary" />
-            Payment-event doctor · Uses PayPal sandbox APIs
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 text-xs font-normal text-mute">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-canvas-soft px-3 py-1 font-semibold text-ink">
-          <span className="size-2 rounded-full bg-positive" aria-hidden />
-          Verified-webhook state guard
-        </span>
-      </div>
-    </header>
-  );
-}
+// Tether Noir app frame:
+// - TopBar spans the full viewport width (replacing the legacy TetherHeader + left Reports rail).
+// - Plain dark page surface (--bg-page) with content cards (--bg-surface) on top.
+// - Responsive: Doctor panel sits beside the workspace on desktop and stacks on smaller widths
+//   (moves to the left column + slide-over drawer in Phase 3/4).
 
 export function AppShell({
-  sidebar,
+  topBar,
   doctorPanel,
   children,
 }: {
-  sidebar: ReactNode;
+  topBar?: ReactNode;
   doctorPanel?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-canvas-soft font-sans text-ink">
-      <TetherHeader />
+    <div className="flex min-h-dvh flex-col bg-page font-sans text-fg">
+      {topBar}
       <div className="flex flex-1 flex-col xl:flex-row">
-        <nav
-          className="shrink-0 border-b border-canvas-soft bg-canvas xl:w-52 xl:border-b-0 xl:border-r 2xl:w-56"
-          aria-label="Reports and pages"
-        >
-          <div className="flex flex-col xl:sticky xl:top-0 xl:max-h-dvh">
-            {sidebar}
-          </div>
-        </nav>
-
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           {children}
         </main>
@@ -70,7 +28,7 @@ export function AppShell({
         {doctorPanel && (
           <aside
             aria-label="Doctor panel"
-            className="flex w-full shrink-0 flex-col border-t border-primary-neutral/60 bg-primary-pale/55 p-4 xl:w-[40%] xl:min-w-[460px] xl:max-w-[780px] xl:self-start xl:rounded-bl-[16px] xl:border-b xl:border-l xl:border-t-0 xl:p-6"
+            className="flex w-full shrink-0 flex-col border-t border-line bg-page p-4 xl:w-[40%] xl:min-w-[460px] xl:max-w-[780px] xl:self-start xl:border-l xl:border-t-0 xl:p-6"
           >
             {doctorPanel}
           </aside>
