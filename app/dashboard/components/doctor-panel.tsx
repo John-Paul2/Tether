@@ -464,7 +464,7 @@ export function DoctorPanel({
     <div
       data-testid="doctor-panel"
       style={{ '--stagger-index': 0 } as CSSProperties}
-      className="tether-card-enter flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface text-fg xl:sticky xl:top-4 xl:h-[calc(100dvh-var(--topbar-height)-2.25rem)] xl:max-h-[calc(100dvh-var(--topbar-height)-2.25rem)]"
+      className="tether-card-enter flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface text-fg"
     >
       {/* Sticky Header: Stethoscope, Title, Refresh, Optional Drawer Close, and Selected Order */}
       <header className="shrink-0 border-b border-line bg-surface p-4">
@@ -547,7 +547,7 @@ export function DoctorPanel({
       </header>
 
       {/* Scrollable Middle: Drift list, SSE Trace steps, Diagnosis, Safety checks, Evidence, Result */}
-      <div className="flex-1 min-h-0 space-y-4 overflow-y-auto p-4">
+      <div className="flex-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-4">
         {loadingDrift && !paypalSlowNotice && (
           <div
             role="status"

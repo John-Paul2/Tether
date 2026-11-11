@@ -6,27 +6,25 @@ function Skeleton({ className = '' }: { className?: string }) {
 
 export function TopBarSkeleton() {
   return (
-    <div className="shrink-0 bg-surface" aria-hidden>
-      <div className="flex min-h-[var(--topbar-height)] items-center justify-between gap-4 px-4 py-2 sm:px-6">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="size-8 rounded-[var(--radius-input)]" />
-            <Skeleton className="h-5 w-16 rounded-[var(--radius-input)]" />
-          </div>
-          <Skeleton className="h-5 w-14 rounded-[var(--radius-input)]" />
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-30" aria-hidden>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 pt-3 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr]">
+        <div className="flex items-center gap-2.5 md:justify-self-start">
+          <Skeleton className="size-8 rounded-[var(--radius-input)]" />
           <Skeleton className="h-5 w-16 rounded-[var(--radius-input)]" />
-          <Skeleton className="hidden h-4 w-24 rounded-[var(--radius-input)] sm:block" />
         </div>
-        <div className="flex items-center gap-2.5">
-          <Skeleton className="size-8 rounded-full" />
-          <Skeleton className="h-7 w-20 rounded-full" />
-          <Skeleton className="size-8 rounded-full" />
+        <div className="order-3 flex w-full justify-center md:order-2 md:w-auto md:justify-self-center">
+          <div className="tether-glass-nav inline-flex items-center gap-1.5 rounded-full px-2 py-1.5">
+            <Skeleton className="h-7 w-16 rounded-full" />
+            <Skeleton className="h-7 w-20 rounded-full" />
+            <span className="mx-0.5 h-4 w-px bg-[var(--glass-border)]" />
+            <Skeleton className="h-5 w-24 rounded-full" />
+          </div>
+        </div>
+        <div className="order-2 flex items-center gap-2 md:order-3 md:justify-self-end">
+          <Skeleton className="h-9 w-20 rounded-full" />
+          <Skeleton className="h-9 w-11 rounded-full" />
         </div>
       </div>
-      <div
-        className="h-[1.5px] w-full opacity-40"
-        style={{ backgroundImage: 'var(--filament-gradient)' }}
-      />
     </div>
   );
 }

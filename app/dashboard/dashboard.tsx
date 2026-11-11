@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
+import { MotionConfig } from 'motion/react';
+import { X } from 'lucide-react';
 import {
   AgStudioAiModule,
   enableStudioDevValidations,
@@ -38,6 +40,7 @@ import {
 import { pagesFor, pageTitlesFor } from './page-titles';
 import { ContentSkeleton } from './components/skeleton';
 import { TopBar } from './components/top-bar';
+import { Badge } from './components/ui/ui';
 import * as reportState from './report-state';
 import { buildAi } from './studio/ai';
 import { buildStudioData, hasData } from './studio/data';
@@ -61,6 +64,75 @@ const NO_HISTORY: StudioHistory = { canUndo: false, canRedo: false };
 
 const noSubscription = () => () => {};
 
+function isHoveredWidgetScrollable(
+  widget: HTMLElement,
+  target: EventTarget | null,
+  dx: number,
+  dy: number,
+): boolean {
+  const verticalDominant = Math.abs(dy) >= Math.abs(dx);
+  const seen = new Set<HTMLElement>();
+  const candidates: HTMLElement[] = [];
+
+  if (target instanceof Element) {
+    let cur: Element | null = target;
+    while (cur && cur !== widget) {
+      if (cur instanceof HTMLElement && !seen.has(cur)) {
+        seen.add(cur);
+        candidates.push(cur);
+      }
+      cur = cur.parentElement;
+    }
+  }
+
+  for (const el of widget.querySelectorAll<HTMLElement>(
+    '.ag-body-viewport, .ag-center-cols-viewport, .ag-body-horizontal-scroll-viewport, .ag-studio-layout-widget-content',
+  )) {
+    if (!seen.has(el)) {
+      seen.add(el);
+      candidates.push(el);
+    }
+  }
+
+  for (const el of candidates) {
+    const style = window.getComputedStyle(el);
+    if (verticalDominant && dy !== 0) {
+      if (
+        (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
+        el.scrollHeight > el.clientHeight + 1
+      ) {
+        const canMove =
+          dy > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 0;
+        if (canMove) return true;
+      }
+    } else if (!verticalDominant && dx !== 0) {
+      if (
+        (style.overflowX === 'auto' || style.overflowX === 'scroll') &&
+        el.scrollWidth > el.clientWidth + 1
+      ) {
+        const canMove =
+          dx > 0 ? el.scrollLeft + el.clientWidth < el.scrollWidth - 1 : el.scrollLeft > 0;
+        if (canMove) return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function scrollPageContainer(startEl: HTMLElement | null, dx: number, dy: number) {
+  const mainScroller = startEl?.closest<HTMLElement>('[data-main-scroll="true"]');
+  if (
+    mainScroller &&
+    mainScroller.scrollHeight > mainScroller.clientHeight + 1 &&
+    window.getComputedStyle(mainScroller).overflowY !== 'visible'
+  ) {
+    mainScroller.scrollBy({ top: dy, left: dx, behavior: 'auto' });
+    return;
+  }
+  window.scrollBy({ top: dy, left: dx, behavior: 'auto' });
+}
+
 export function Dashboard(props: DashboardProps) {
   const inBrowser = useSyncExternalStore(
     noSubscription,
@@ -68,7 +140,11 @@ export function Dashboard(props: DashboardProps) {
     () => false,
   );
   if (inBrowser) {
-    return <ReportsDashboard {...props} />;
+    return (
+      <MotionConfig reducedMotion="user">
+        <ReportsDashboard {...props} />
+      </MotionConfig>
+    );
   }
 
   const fallbackReport = defaultReport();
@@ -79,55 +155,57 @@ export function Dashboard(props: DashboardProps) {
   );
 
   return (
-    <AppShell
-      topBar={
-        <TopBar
-          reports={[fallbackReport]}
-          activeReport={fallbackReport}
-          pages={fallbackPages}
-          selectedPageId={fallbackReport.state.selectedPageId}
-          asOf={props.data.asOf}
-          paypalSlow={props.data.paypalStatus.slow}
-          paypalError={props.data.paypalStatus.error}
-          dropWebhooks={props.data.dropWebhooks}
-          localOrders={props.data.local_orders}
-          editing={false}
-          ready={false}
-          pageIsEmpty={false}
-          canUndo={false}
-          canRedo={false}
-          onSelectPage={() => {}}
-          onSelectReport={() => {}}
-          onAddPage={() => {}}
-          onNewReport={() => {}}
-          onEditingChange={() => {}}
-          onResetReport={() => {}}
-          onRenameReport={() => {}}
-          onDuplicateReport={() => {}}
-          onDeleteReport={() => {}}
-          onRenamePage={() => {}}
-          onRemovePage={() => {}}
-          onUndo={() => {}}
-          onRedo={() => {}}
-          onDiscard={() => {}}
-          onSave={() => {}}
-          onFaultChanged={() => {}}
-          onOrderMutated={() => {}}
-          openDriftCount={props.data.drift.length}
-        />
-      }
-      doctorPanel={
-        <DoctorPanel
-          initialDrift={props.data.drift}
-          dropWebhooks={props.data.dropWebhooks}
-          selectedOrder={initialSelectedOrder}
-          isSelectedDrifting={initialSelectedDrifting}
-          onHealedOrUpdated={() => {}}
-        />
-      }
-    >
-      <ContentSkeleton />
-    </AppShell>
+    <MotionConfig reducedMotion="user">
+      <AppShell
+        topBar={
+          <TopBar
+            reports={[fallbackReport]}
+            activeReport={fallbackReport}
+            pages={fallbackPages}
+            selectedPageId={fallbackReport.state.selectedPageId}
+            asOf={props.data.asOf}
+            paypalSlow={props.data.paypalStatus.slow}
+            paypalError={props.data.paypalStatus.error}
+            dropWebhooks={props.data.dropWebhooks}
+            localOrders={props.data.local_orders}
+            editing={false}
+            ready={false}
+            pageIsEmpty={false}
+            canUndo={false}
+            canRedo={false}
+            onSelectPage={() => {}}
+            onSelectReport={() => {}}
+            onAddPage={() => {}}
+            onNewReport={() => {}}
+            onEditingChange={() => {}}
+            onResetReport={() => {}}
+            onRenameReport={() => {}}
+            onDuplicateReport={() => {}}
+            onDeleteReport={() => {}}
+            onRenamePage={() => {}}
+            onRemovePage={() => {}}
+            onUndo={() => {}}
+            onRedo={() => {}}
+            onDiscard={() => {}}
+            onSave={() => {}}
+            onFaultChanged={() => {}}
+            onOrderMutated={() => {}}
+            openDriftCount={props.data.drift.length}
+          />
+        }
+        doctorPanel={
+          <DoctorPanel
+            initialDrift={props.data.drift}
+            dropWebhooks={props.data.dropWebhooks}
+            selectedOrder={initialSelectedOrder}
+            isSelectedDrifting={initialSelectedDrifting}
+            onHealedOrUpdated={() => {}}
+          />
+        }
+      >
+        <ContentSkeleton />
+      </AppShell>
+    </MotionConfig>
   );
 }
 
@@ -145,7 +223,9 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
   const doctorTriggerRef = useRef<HTMLButtonElement>(null);
   const [manualSelectedOrderId, setManualSelectedOrderId] = useState<string | null>(null);
   const [recentlyHealedOrderId, setRecentlyHealedOrderId] = useState<string | null>(null);
+  const [dismissedNoticeAsOf, setDismissedNoticeAsOf] = useState<string | null>(null);
   const healResetTimerRef = useRef<number | null>(null);
+  const studioHostRef = useRef<HTMLDivElement>(null);
 
   const [dropOverride, setDropOverride] = useState<{
     asOf: string;
@@ -336,12 +416,62 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
   const editing = mode === 'edit';
   const pages = pagesFor({ pageTitles: saved.pageTitles, state });
   const activePage = state.pages.find((p) => p.id === state.selectedPageId);
+
+  // Hovering a scrollable table scrolls it directly without requiring a click; non-overflowing
+  // charts/tables (and tables at their scroll boundary) pass wheel events smoothly to the page.
+  useEffect(() => {
+    const host = studioHostRef.current;
+    if (!host || editing) return;
+
+    const onWheel = (event: WheelEvent) => {
+      const target = event.target as Element | null;
+      const widget = target?.closest<HTMLElement>('.ag-studio-layout-widget') ?? null;
+      if (!widget || !host.contains(widget)) return;
+
+      const unit =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE
+          ? 16
+          : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
+            ? window.innerHeight
+            : 1;
+      const dx = event.deltaX * unit;
+      const dy = event.deltaY * unit;
+      if (dx === 0 && dy === 0) return;
+
+      if (isHoveredWidgetScrollable(widget, target, dx, dy)) {
+        // Hovered table still has scroll room in this direction: let it scroll natively on hover
+        return;
+      }
+
+      // Hovering a chart or a table with no remaining overflow: scroll the combined page smoothly
+      event.preventDefault();
+      event.stopPropagation();
+      scrollPageContainer(widget.parentElement, dx, dy);
+    };
+
+    host.addEventListener('wheel', onWheel, { capture: true, passive: false });
+
+    return () => {
+      host.removeEventListener('wheel', onWheel, true);
+    };
+  }, [editing, state.selectedPageId]);
+
+  useEffect(() => {
+    const mainScroller = studioHostRef.current?.closest<HTMLElement>('[data-main-scroll="true"]');
+    if (mainScroller && mainScroller.scrollTop > 0) {
+      mainScroller.scrollTo({ top: 0 });
+    }
+  }, [state.selectedPageId]);
+
   const maxTrack = Object.values(activePage?.widgetLayout ?? {}).reduce(
     (max, widgetPos) => (widgetPos ? Math.max(max, widgetPos.yTrack + widgetPos.ySpan) : max),
     0,
   );
-  const studioMinHeight = Math.max(540, maxTrack * 18 + 32);
+  const studioMinHeight = Math.max(540, maxTrack * 18 + 40);
   const showReconciliationStrip = state.selectedPageId === 'health';
+  const showPaypalNotice =
+    Boolean(data.paypalStatus.error || data.paypalStatus.slow) &&
+    dismissedNoticeAsOf !== data.asOf;
 
   return (
     <AppShell
@@ -418,8 +548,26 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
         />
       }
     >
+      {showPaypalNotice && (
+        <div className="flex items-center justify-between gap-2 px-4 pt-1 pb-2">
+          <Badge tone="warning">
+            {data.paypalStatus.error
+              ? `PayPal sandbox slow or unreachable (${data.paypalStatus.error}). Local SQLite loaded; click refresh to retry.`
+              : 'PayPal sandbox responded slowly (>4s). Live data loaded.'}
+          </Badge>
+          <button
+            type="button"
+            aria-label="Dismiss sandbox status notice"
+            onClick={() => setDismissedNoticeAsOf(data.asOf)}
+            className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-fg-3 transition-colors hover:bg-raised hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <X className="size-3.5" strokeWidth={1.5} aria-hidden />
+          </button>
+        </div>
+      )}
+
       {showReconciliationStrip && (
-        <div className="grid grid-cols-1 gap-4 px-4 pt-4 lg:grid-cols-[minmax(240px,288px)_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 gap-4 px-4 pt-0 lg:grid-cols-[minmax(240px,288px)_minmax(0,1fr)]">
           <MoneyBox
             drift={data.drift}
             selectedOrder={selectedOrder}
@@ -439,14 +587,19 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
       )}
 
       <div
-        className="ag-studio-host flex-1 min-w-0"
+        ref={studioHostRef}
+        className={`ag-studio-host min-w-0 ${
+          editing
+            ? 'flex-1'
+            : `shrink-0 pb-4 ${!showReconciliationStrip && !showPaypalNotice ? 'sm:-mt-4' : ''}`
+        }`}
         style={{ '--studio-min-h': `${studioMinHeight}px` } as CSSProperties}
       >
         {hasData(data) ? (
           <TetherStudioContext.Provider value={studioContextValue}>
             <AgStudioProvider licenseKey={licenseKey} modules={ai ? [AgStudioAiModule] : undefined}>
               <AgStudio
-                style={{ height: '100%', width: '100%' }}
+                style={editing ? { height: '100%', width: '100%' } : { width: '100%' }}
                 theme={agStudioTetherTheme}
                 widgets={tetherWidgets}
                 localeText={{

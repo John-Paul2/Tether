@@ -468,6 +468,40 @@ body {
   animation: tether-error-shake var(--dur-base) var(--ease) 1;
 }
 
+/* ---- Frosted glass navigation pills & overlay menus ------------------------------------ */
+.tether-glass-nav {
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight);
+  -webkit-backdrop-filter: blur(20px) saturate(155%);
+  backdrop-filter: blur(20px) saturate(155%);
+}
+
+.tether-glass-pill {
+  background-color: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-highlight);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.tether-glass-pill:hover:not(:disabled) {
+  background-color: var(--glass-bg-hover);
+  border-color: var(--glass-border-strong);
+}
+
+.tether-glass-menu {
+  background-color: var(--glass-menu-bg);
+  border: 1px solid var(--glass-border-strong);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  backdrop-filter: blur(28px) saturate(170%);
+}
+
 /* Guarantee AG Studio grids keep clean height and never collapse */
 .ag-studio-grid-widget,
 .ag-studio-grid-widget .ag-root-wrapper {
@@ -604,10 +638,29 @@ body {
 }
 
 @media (min-width: 640px) {
-  .ag-studio-host,
-  .ag-studio-host > div,
-  .ag-studio-host .ag-studio-root,
-  .ag-studio-host .ag-studio-layout {
+  /* View mode: expand Studio canvas to full height inside the single right scroll pane so AG Studio never spawns a 2nd scrollbar */
+  .ag-studio-host:not(:has(.ag-studio-layout-widget-editing)) {
+    min-height: var(--studio-min-h, 540px);
+  }
+  .ag-studio-host:not(:has(.ag-studio-layout-widget-editing)) > div,
+  .ag-studio-host:not(:has(.ag-studio-layout-widget-editing)) .ag-studio-root,
+  .ag-studio-host:not(:has(.ag-studio-layout-widget-editing)) .ag-studio-root-inner,
+  .ag-studio-host:not(:has(.ag-studio-layout-widget-editing)) .ag-studio-root-canvas,
+  .ag-studio-host:not(:has(.ag-studio-layout-widget-editing)) .ag-studio-layout {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+  }
+  .ag-studio-host:not(:has(.ag-studio-layout-widget-editing)) .ag-studio-root-inner {
+    position: static !important;
+  }
+
+  /* Edit mode keeps Studio's full-canvas panel container sized to the page */
+  .ag-studio-host:has(.ag-studio-layout-widget-editing),
+  .ag-studio-host:has(.ag-studio-layout-widget-editing) > div,
+  .ag-studio-host:has(.ag-studio-layout-widget-editing) .ag-studio-root,
+  .ag-studio-host:has(.ag-studio-layout-widget-editing) .ag-studio-layout {
     min-height: var(--studio-min-h, 540px);
   }
 }

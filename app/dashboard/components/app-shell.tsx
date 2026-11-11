@@ -84,10 +84,10 @@ export function AppShell({
   }, [isDrawerModal, onCloseDoctorDrawer, doctorTriggerRef]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-page font-sans text-fg">
+    <div className="flex min-h-dvh flex-col bg-page font-sans text-fg xl:h-dvh xl:overflow-hidden">
       {topBar}
       <div
-        className={`grid flex-1 grid-cols-1 ${
+        className={`grid flex-1 grid-cols-1 xl:min-h-0 xl:h-full ${
           doctorPanel
             ? 'xl:grid-cols-[minmax(360px,396px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(400px,456px)_minmax(0,1fr)]'
             : ''
@@ -112,7 +112,7 @@ export function AppShell({
             role={!isDesktop ? 'dialog' : undefined}
             aria-modal={!isDesktop && doctorDrawerOpen ? true : undefined}
             inert={!isDesktop && !doctorDrawerOpen}
-            className={`fixed inset-y-0 left-0 z-50 flex w-[min(420px,calc(100vw-24px))] flex-col bg-page p-3 shadow-[var(--shadow-popover)] transition-transform duration-[var(--dur-medium)] ease-[var(--ease)] motion-reduce:transition-none xl:static xl:z-auto xl:w-auto xl:translate-x-0 xl:border-r xl:border-line xl:p-4 xl:shadow-none ${
+            className={`fixed inset-y-0 left-0 z-50 flex w-[min(420px,calc(100vw-24px))] flex-col bg-page p-3 shadow-[var(--shadow-popover)] transition-transform duration-[var(--dur-medium)] ease-[var(--ease)] motion-reduce:transition-none xl:static xl:z-auto xl:h-full xl:min-h-0 xl:w-auto xl:translate-x-0 xl:overflow-hidden xl:border-r xl:border-line xl:px-4 xl:pb-4 xl:pt-[64px] xl:shadow-none ${
               doctorDrawerOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
           >
@@ -120,7 +120,12 @@ export function AppShell({
           </aside>
         )}
 
-        <main className="flex min-h-0 min-w-0 flex-col">{children}</main>
+        <main
+          data-main-scroll="true"
+          className="flex min-h-0 min-w-0 flex-col pt-[104px] md:pt-[64px] xl:h-full xl:overflow-y-auto xl:overscroll-contain xl:pb-4"
+        >
+          {children}
+        </main>
       </div>
     </div>
   );
