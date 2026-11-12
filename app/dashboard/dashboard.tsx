@@ -1,6 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ComponentProps,
+  type CSSProperties,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import { MotionConfig } from 'motion/react';
 import { X } from 'lucide-react';
@@ -64,6 +73,51 @@ const NO_HISTORY: StudioHistory = { canUndo: false, canRedo: false };
 
 const noSubscription = () => () => {};
 
+const STUDIO_AI_MODULES = [AgStudioAiModule];
+
+const STUDIO_LOCALE_TEXT: ComponentProps<typeof AgStudio>['localeText'] = {
+  widgetOverlayNoData: 'Not enough data yet.',
+  widgetOverlayLoading: 'Loading report data…',
+};
+
+const STUDIO_LAYOUT: ComponentProps<typeof AgStudio>['layout'] = {
+  widgetBorderEnabled: true,
+  minWidth: 320,
+};
+
+const STUDIO_PANELS: ComponentProps<typeof AgStudio>['panels'] = {
+  view: { left: [], right: [] },
+  edit: { left: ['ai'], right: ['filters', 'edit', 'data'] },
+};
+
+const STUDIO_VIEW_STYLE: CSSProperties = { width: '100%' };
+const STUDIO_EDIT_STYLE: CSSProperties = { height: '100%', width: '100%' };
+
+function isElementScrollableInDirection(
+  el: HTMLElement,
+  dx: number,
+  dy: number,
+  verticalDominant: boolean,
+): boolean {
+  const style = window.getComputedStyle(el);
+  if (verticalDominant && dy !== 0) {
+    if (
+      (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
+      el.scrollHeight > el.clientHeight + 1
+    ) {
+      return dy > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 0;
+    }
+  } else if (!verticalDominant && dx !== 0) {
+    if (
+      (style.overflowX === 'auto' || style.overflowX === 'scroll') &&
+      el.scrollWidth > el.clientWidth + 1
+    ) {
+      return dx > 0 ? el.scrollLeft + el.clientWidth < el.scrollWidth - 1 : el.scrollLeft > 0;
+    }
+  }
+  return false;
+}
+
 function isHoveredWidgetScrollable(
   widget: HTMLElement,
   target: EventTarget | null,
@@ -95,42 +149,140 @@ function isHoveredWidgetScrollable(
   }
 
   for (const el of candidates) {
-    const style = window.getComputedStyle(el);
-    if (verticalDominant && dy !== 0) {
-      if (
-        (style.overflowY === 'auto' || style.overflowY === 'scroll') &&
-        el.scrollHeight > el.clientHeight + 1
-      ) {
-        const canMove =
-          dy > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 0;
-        if (canMove) return true;
-      }
-    } else if (!verticalDominant && dx !== 0) {
-      if (
-        (style.overflowX === 'auto' || style.overflowX === 'scroll') &&
-        el.scrollWidth > el.clientWidth + 1
-      ) {
-        const canMove =
-          dx > 0 ? el.scrollLeft + el.clientWidth < el.scrollWidth - 1 : el.scrollLeft > 0;
-        if (canMove) return true;
-      }
+    if (isElementScrollableInDirection(el, dx, dy, verticalDominant)) {
+      return true;
     }
   }
 
   return false;
 }
 
-function scrollPageContainer(startEl: HTMLElement | null, dx: number, dy: number) {
-  const mainScroller = startEl?.closest<HTMLElement>('[data-main-scroll="true"]');
-  if (
-    mainScroller &&
-    mainScroller.scrollHeight > mainScroller.clientHeight + 1 &&
-    window.getComputedStyle(mainScroller).overflowY !== 'visible'
-  ) {
-    mainScroller.scrollBy({ top: dy, left: dx, behavior: 'auto' });
-    return;
+function hasScrollableChildBefore(
+  stopEl: HTMLElement,
+  target: EventTarget | null,
+  dx: number,
+  dy: number,
+): boolean {
+  if (!(target instanceof Element)) return false;
+  const verticalDominant = Math.abs(dy) >= Math.abs(dx);
+  let cur: Element | null = target;
+  while (cur && cur !== stopEl) {
+    if (cur instanceof HTMLElement && isElementScrollableInDirection(cur, dx, dy, verticalDominant)) {
+      return true;
+    }
+    cur = cur.parentElement;
   }
-  window.scrollBy({ top: dy, left: dx, behavior: 'auto' });
+  return false;
+}
+
+type SmoothScrollState = {
+  targetTop: number;
+  targetLeft: number;
+  lastTop: number;
+  lastLeft: number;
+  rafId: number | null;
+  lastTime: number;
+};
+
+const smoothScrollStates = new WeakMap<Element, SmoothScrollState>();
+const SMOOTH_SCROLL_DECAY = 18;
+
+function resolvePageScroller(mainEl: HTMLElement): HTMLElement {
+  if (window.getComputedStyle(mainEl).overflowY !== 'visible') {
+    return mainEl;
+  }
+  return (document.scrollingElement as HTMLElement | null) ?? document.documentElement;
+}
+
+function stopSmoothScroll(el: Element | null | undefined) {
+  if (!el) return;
+  const state = smoothScrollStates.get(el);
+  if (!state) return;
+  if (state.rafId != null) {
+    cancelAnimationFrame(state.rafId);
+    state.rafId = null;
+  }
+  state.targetTop = el.scrollTop;
+  state.targetLeft = el.scrollLeft;
+  state.lastTop = el.scrollTop;
+  state.lastLeft = el.scrollLeft;
+}
+
+function enqueueSmoothScroll(el: Element, dx: number, dy: number) {
+  const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
+  const maxLeft = Math.max(0, el.scrollWidth - el.clientWidth);
+
+  let state = smoothScrollStates.get(el);
+  if (!state) {
+    state = {
+      targetTop: el.scrollTop,
+      targetLeft: el.scrollLeft,
+      lastTop: el.scrollTop,
+      lastLeft: el.scrollLeft,
+      rafId: null,
+      lastTime: performance.now(),
+    };
+    smoothScrollStates.set(el, state);
+  }
+
+  // Re-sync if user scrolled via scrollbar thumb, keyboard, or programmatic jump
+  if (Math.abs(el.scrollTop - state.lastTop) > 2) {
+    state.targetTop = el.scrollTop;
+    state.lastTop = el.scrollTop;
+  }
+  if (Math.abs(el.scrollLeft - state.lastLeft) > 2) {
+    state.targetLeft = el.scrollLeft;
+    state.lastLeft = el.scrollLeft;
+  }
+
+  state.targetTop = Math.max(0, Math.min(maxTop, state.targetTop + dy));
+  state.targetLeft = Math.max(0, Math.min(maxLeft, state.targetLeft + dx));
+
+  if (state.rafId != null) return;
+
+  state.lastTime = performance.now();
+  const step = (now: number) => {
+    if (!state) return;
+    const dt = Math.min(0.05, Math.max(0.001, (now - state.lastTime) / 1000));
+    state.lastTime = now;
+
+    if (Math.abs(el.scrollTop - state.lastTop) > 2) {
+      state.targetTop = el.scrollTop;
+    }
+    if (Math.abs(el.scrollLeft - state.lastLeft) > 2) {
+      state.targetLeft = el.scrollLeft;
+    }
+
+    const diffY = state.targetTop - el.scrollTop;
+    const diffX = state.targetLeft - el.scrollLeft;
+
+    if (Math.abs(diffY) < 0.5 && Math.abs(diffX) < 0.5) {
+      el.scrollTop = state.targetTop;
+      el.scrollLeft = state.targetLeft;
+      state.lastTop = el.scrollTop;
+      state.lastLeft = el.scrollLeft;
+      state.rafId = null;
+      return;
+    }
+
+    const alpha = 1 - Math.exp(-SMOOTH_SCROLL_DECAY * dt);
+    if (Math.abs(diffY) >= 0.5) {
+      el.scrollTop += diffY * alpha;
+    } else {
+      el.scrollTop = state.targetTop;
+    }
+    if (Math.abs(diffX) >= 0.5) {
+      el.scrollLeft += diffX * alpha;
+    } else {
+      el.scrollLeft = state.targetLeft;
+    }
+
+    state.lastTop = el.scrollTop;
+    state.lastLeft = el.scrollLeft;
+    state.rafId = requestAnimationFrame(step);
+  };
+
+  state.rafId = requestAnimationFrame(step);
 }
 
 export function Dashboard(props: DashboardProps) {
@@ -149,10 +301,6 @@ export function Dashboard(props: DashboardProps) {
 
   const fallbackReport = defaultReport();
   const fallbackPages = pagesFor(fallbackReport);
-  const initialSelectedOrder = props.data.local_orders[0] ?? null;
-  const initialSelectedDrifting = Boolean(
-    initialSelectedOrder && props.data.drift.some((d) => d.order_id === initialSelectedOrder.order_id),
-  );
 
   return (
     <MotionConfig reducedMotion="user">
@@ -191,15 +339,8 @@ export function Dashboard(props: DashboardProps) {
             onFaultChanged={() => {}}
             onOrderMutated={() => {}}
             openDriftCount={props.data.drift.length}
-          />
-        }
-        doctorPanel={
-          <DoctorPanel
-            initialDrift={props.data.drift}
-            dropWebhooks={props.data.dropWebhooks}
-            selectedOrder={initialSelectedOrder}
-            isSelectedDrifting={initialSelectedDrifting}
-            onHealedOrUpdated={() => {}}
+            doctorDrawerOpen={false}
+            onToggleDoctorDrawer={() => {}}
           />
         }
       >
@@ -417,51 +558,97 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
   const pages = pagesFor({ pageTitles: saved.pageTitles, state });
   const activePage = state.pages.find((p) => p.id === state.selectedPageId);
 
-  // Hovering a scrollable table scrolls it directly without requiring a click; non-overflowing
-  // charts/tables (and tables at their scroll boundary) pass wheel events smoothly to the page.
+  // Smooth inertial page wheel scrolling across the whole page, while letting hovered
+  // overflowing grids (Local orders, Agent runs) scroll natively without requiring a click.
   useEffect(() => {
     const host = studioHostRef.current;
-    if (!host || editing) return;
+    const mainScroller = host?.closest<HTMLElement>('[data-main-scroll="true"]') ?? null;
+    if (!mainScroller || editing) return;
 
     const onWheel = (event: WheelEvent) => {
-      const target = event.target as Element | null;
-      const widget = target?.closest<HTMLElement>('.ag-studio-layout-widget') ?? null;
-      if (!widget || !host.contains(widget)) return;
+      if (event.ctrlKey || event.metaKey) return;
 
+      const scroller = resolvePageScroller(mainScroller);
       const unit =
         event.deltaMode === WheelEvent.DOM_DELTA_LINE
-          ? 16
+          ? 18
           : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
-            ? window.innerHeight
+            ? scroller.clientHeight * 0.85
             : 1;
       const dx = event.deltaX * unit;
       const dy = event.deltaY * unit;
       if (dx === 0 && dy === 0) return;
 
-      if (isHoveredWidgetScrollable(widget, target, dx, dy)) {
-        // Hovered table still has scroll room in this direction: let it scroll natively on hover
+      const target = event.target as Element | null;
+      const widget = target?.closest<HTMLElement>('.ag-studio-layout-widget') ?? null;
+
+      if (widget && host?.contains(widget)) {
+        if (isHoveredWidgetScrollable(widget, target, dx, dy)) {
+          // Hovered table still has scroll room in this direction: scroll natively on hover
+          return;
+        }
+      } else if (hasScrollableChildBefore(mainScroller, target, dx, dy)) {
         return;
       }
 
-      // Hovering a chart or a table with no remaining overflow: scroll the combined page smoothly
+      const verticalDominant = Math.abs(dy) >= Math.abs(dx);
+      const maxTop = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+      const maxLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+
+      // Preserve horizontal browser swipe gestures when page has no horizontal overflow
+      if (!verticalDominant && maxLeft <= 0 && !widget) return;
+      if (verticalDominant && maxTop <= 0 && !widget) return;
+
       event.preventDefault();
-      event.stopPropagation();
-      scrollPageContainer(widget.parentElement, dx, dy);
+      if (widget) {
+        event.stopPropagation();
+      }
+
+      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      if (reducedMotion) {
+        scroller.scrollBy({ top: dy, left: dx, behavior: 'auto' });
+        return;
+      }
+
+      enqueueSmoothScroll(scroller, dx, dy);
     };
 
-    host.addEventListener('wheel', onWheel, { capture: true, passive: false });
+    mainScroller.addEventListener('wheel', onWheel, { capture: true, passive: false });
 
     return () => {
-      host.removeEventListener('wheel', onWheel, true);
+      mainScroller.removeEventListener('wheel', onWheel, true);
+      stopSmoothScroll(mainScroller);
+      stopSmoothScroll(document.scrollingElement);
     };
   }, [editing, state.selectedPageId]);
 
   useEffect(() => {
     const mainScroller = studioHostRef.current?.closest<HTMLElement>('[data-main-scroll="true"]');
-    if (mainScroller && mainScroller.scrollTop > 0) {
+    if (!mainScroller) return;
+    stopSmoothScroll(mainScroller);
+    stopSmoothScroll(document.scrollingElement);
+    if (mainScroller.scrollTop > 0) {
       mainScroller.scrollTo({ top: 0 });
     }
   }, [state.selectedPageId]);
+
+  const handleApiReady = useCallback((event: { api: AgStudioApi }) => {
+    apiRef.current = event.api;
+  }, []);
+
+  const handleStudioReady = useCallback((event: { api: AgStudioApi }) => {
+    const current = event.api.getState();
+    setStudioState(current);
+  }, []);
+
+  const handleStateUpdated = useCallback(
+    (event: { api: AgStudioApi; state: AgReportState }) => {
+      const { undo, redo } = event.api.getHistory();
+      setStudioState(event.state);
+      setHistory({ canUndo: undo.length > 0, canRedo: redo.length > 0 });
+    },
+    [],
+  );
 
   const maxTrack = Object.values(activePage?.widgetLayout ?? {}).reduce(
     (max, widgetPos) => (widgetPos ? Math.max(max, widgetPos.yTrack + widgetPos.ySpan) : max),
@@ -538,9 +725,7 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
           isSelectedDrifting={isSelectedDrifting}
           onHealSucceeded={handleHealSucceeded}
           onInvestigatingChange={setIsInvestigating}
-          onHealedOrUpdated={() => {
-            router.refresh();
-          }}
+          onHealedOrUpdated={refreshAllData}
           onCloseDrawer={() => {
             setDoctorDrawerOpen(false);
             requestAnimationFrame(() => doctorTriggerRef.current?.focus());
@@ -597,36 +782,24 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
       >
         {hasData(data) ? (
           <TetherStudioContext.Provider value={studioContextValue}>
-            <AgStudioProvider licenseKey={licenseKey} modules={ai ? [AgStudioAiModule] : undefined}>
+            <AgStudioProvider
+              licenseKey={licenseKey}
+              modules={ai ? STUDIO_AI_MODULES : undefined}
+            >
               <AgStudio
-                style={editing ? { height: '100%', width: '100%' } : { width: '100%' }}
+                style={editing ? STUDIO_EDIT_STYLE : STUDIO_VIEW_STYLE}
                 theme={agStudioTetherTheme}
                 widgets={tetherWidgets}
-                localeText={{
-                  widgetOverlayNoData: 'Not enough data yet.',
-                  widgetOverlayLoading: 'Loading report data…',
-                }}
-                layout={{ widgetBorderEnabled: true, minWidth: 320 }}
-                panels={{
-                  view: { left: [], right: [] },
-                  edit: { left: ['ai'], right: ['filters', 'edit', 'data'] },
-                }}
+                localeText={STUDIO_LOCALE_TEXT}
+                layout={STUDIO_LAYOUT}
+                panels={STUDIO_PANELS}
                 data={studioData}
                 ai={ai}
                 initialState={initialState}
                 mode={mode}
-                onApiReady={(event) => {
-                  apiRef.current = event.api;
-                }}
-                onStudioReady={(event) => {
-                  const current = event.api.getState();
-                  setStudioState(current);
-                }}
-                onStateUpdated={(event) => {
-                  const { undo, redo } = event.api.getHistory();
-                  setStudioState(event.state);
-                  setHistory({ canUndo: undo.length > 0, canRedo: redo.length > 0 });
-                }}
+                onApiReady={handleApiReady}
+                onStudioReady={handleStudioReady}
+                onStateUpdated={handleStateUpdated}
               />
             </AgStudioProvider>
           </TetherStudioContext.Provider>

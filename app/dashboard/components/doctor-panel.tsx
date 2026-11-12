@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState, type CSSProperties } from 'react';
+import { GripHorizontal } from 'lucide-react';
 import type { TetherDriftRow, TetherLocalOrderRow } from '@/lib/tether-data';
 import {
   AlertIcon,
@@ -464,10 +465,20 @@ export function DoctorPanel({
     <div
       data-testid="doctor-panel"
       style={{ '--stagger-index': 0 } as CSSProperties}
-      className="tether-card-enter flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface text-fg"
+      className="tether-glass-panel flex h-full min-h-0 flex-col overflow-hidden rounded-[var(--radius-card)] text-fg"
     >
-      {/* Sticky Header: Stethoscope, Title, Refresh, Optional Drawer Close, and Selected Order */}
-      <header className="shrink-0 border-b border-line bg-surface p-4">
+      {/* Sticky Header (also acts as drag bar to float/dock the Doctor tile): Grip, Stethoscope, Title, Refresh, Close, and Selected Order */}
+      <header
+        data-doctor-drag-header="true"
+        title="Drag to float or snap to left/right edge"
+        className="shrink-0 border-b border-[var(--glass-border)] bg-[var(--glass-panel-tint)] p-4 select-none lg:cursor-grab [[data-doctor-dragging='true']_&]:cursor-grabbing"
+      >
+        <div
+          className="-mt-1.5 mb-1.5 hidden items-center justify-center text-fg-3/70 lg:flex"
+          aria-hidden
+        >
+          <GripHorizontal className="size-4" strokeWidth={1.75} />
+        </div>
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-input)] border border-accent/30 bg-ai-soft text-accent">
@@ -492,11 +503,9 @@ export function DoctorPanel({
               <RefreshIcon className={`size-4 ${loadingDrift ? 'animate-spin' : ''}`} />
             </IconButton>
             {onCloseDrawer && (
-              <span className="xl:hidden">
-                <IconButton label="Close Doctor drawer" onClick={onCloseDrawer}>
-                  <CloseIcon className="size-4" />
-                </IconButton>
-              </span>
+              <IconButton label="Close Doctor panel" onClick={onCloseDrawer}>
+                <CloseIcon className="size-4" />
+              </IconButton>
             )}
           </div>
         </div>
@@ -505,7 +514,7 @@ export function DoctorPanel({
           <div
             data-testid="doctor-selected-order"
             data-order-id={selectedOrder.order_id}
-            className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-input)] border border-line bg-sunken px-3 py-2 text-xs"
+            className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-sunken/75 px-3 py-2 text-xs"
           >
             <div className="flex min-w-0 items-center gap-2">
               <span className="text-fg-3">Selected</span>
@@ -547,7 +556,7 @@ export function DoctorPanel({
       </header>
 
       {/* Scrollable Middle: Drift list, SSE Trace steps, Diagnosis, Safety checks, Evidence, Result */}
-      <div className="flex-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-4">
+      <div className="tether-doctor-scroll flex-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-4">
         {loadingDrift && !paypalSlowNotice && (
           <div
             role="status"
@@ -1049,16 +1058,16 @@ export function DoctorPanel({
       </div>
 
       {/* Sticky Footer: Preview line + Single filled Approve fix button */}
-      <footer className="shrink-0 border-t border-line bg-surface p-4">
+      <footer className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--glass-panel-tint)] p-4">
         {diagnosis?.order_id && resendEventId ? (
-          <p className="mb-2.5 rounded-[var(--radius-input)] border border-line bg-sunken px-3 py-2 text-xs leading-relaxed text-fg-2">
+          <p className="mb-2.5 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-sunken/75 px-3 py-2 text-xs leading-relaxed text-fg-2">
             Will resend webhook event{' '}
             <code className="font-mono font-semibold text-fg">{resendEventId}</code> for order{' '}
             <code className="font-mono font-semibold text-fg">{diagnosis.order_id}</code>. No
             PayPal state is changed.
           </p>
         ) : disabledFixReason ? (
-          <p className="mb-2.5 rounded-[var(--radius-input)] border border-line bg-sunken px-3 py-2 text-xs leading-relaxed text-fg-3">
+          <p className="mb-2.5 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-sunken/75 px-3 py-2 text-xs leading-relaxed text-fg-3">
             {disabledFixReason}
           </p>
         ) : (

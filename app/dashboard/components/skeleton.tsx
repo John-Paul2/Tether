@@ -7,18 +7,17 @@ function Skeleton({ className = '' }: { className?: string }) {
 export function TopBarSkeleton() {
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-30" aria-hidden>
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 pt-3 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr]">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 pt-5 sm:px-6 sm:pt-6 md:grid md:grid-cols-[1fr_auto_1fr]">
         <div className="flex items-center gap-2.5 md:justify-self-start">
           <Skeleton className="size-8 rounded-[var(--radius-input)]" />
           <Skeleton className="h-5 w-16 rounded-[var(--radius-input)]" />
         </div>
-        <div className="order-3 flex w-full justify-center md:order-2 md:w-auto md:justify-self-center">
-          <div className="tether-glass-nav inline-flex items-center gap-1.5 rounded-full px-2 py-1.5">
+        <div className="order-3 flex w-full flex-wrap items-center justify-center gap-2.5 md:order-2 md:w-auto md:justify-self-center">
+          <div className="tether-glass-nav inline-flex items-center gap-1 rounded-full px-2 py-1.5">
             <Skeleton className="h-7 w-16 rounded-full" />
             <Skeleton className="h-7 w-20 rounded-full" />
-            <span className="mx-0.5 h-4 w-px bg-[var(--glass-border)]" />
-            <Skeleton className="h-5 w-24 rounded-full" />
           </div>
+          <Skeleton className="h-9 w-24 rounded-full" />
         </div>
         <div className="order-2 flex items-center gap-2 md:order-3 md:justify-self-end">
           <Skeleton className="h-9 w-20 rounded-full" />

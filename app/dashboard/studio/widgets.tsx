@@ -666,6 +666,59 @@ function TetherGridWidget(params: AgGridWidgetProps) {
   return <GridWidget {...params} />;
 }
 
+const CHART_POST_PATCHED = Symbol.for('tether.chartPostPatched');
+const CHART_PROXY_WAIT_GUARDED = Symbol.for('tether.chartProxyWaitGuarded');
+
+type ChartProxyInstance = {
+  chart?: unknown;
+  waitForUpdate?: (...args: unknown[]) => Promise<unknown>;
+};
+
+type TaggedObject = object & Record<symbol, boolean | undefined>;
+
+function guardChartProxyPrototype(proxy: unknown) {
+  if (!proxy || typeof proxy !== 'object') return;
+  const proto = Object.getPrototypeOf(proxy) as (ChartProxyInstance & TaggedObject) | null;
+  if (!proto || proto[CHART_PROXY_WAIT_GUARDED] || typeof proto.waitForUpdate !== 'function') {
+    return;
+  }
+  proto[CHART_PROXY_WAIT_GUARDED] = true;
+  const origWaitForUpdate = proto.waitForUpdate;
+  proto.waitForUpdate = async function (this: ChartProxyInstance, ...args: unknown[]) {
+    if (!this.chart) return;
+    try {
+      return await origWaitForUpdate.apply(this, args);
+    } catch (err) {
+      // ag-charts-community@14.2.0 omitted `?.` before `.takeFailFastError()` inside `waitForUpdate()`.
+      // When a chart is destroyed mid-await (route switch / StrictMode / HMR), `this.chart` becomes
+      // undefined; swallow only the post-destroy race so no unhandled rejection crashes the page.
+      if (!this.chart) return;
+      throw err;
+    }
+  };
+}
+
+function guardChartWidgetPrototype(comp: unknown) {
+  if (typeof comp !== 'function') return;
+  let owner = comp.prototype as
+    | (TaggedObject & { postConstruct?: (...args: unknown[]) => unknown })
+    | null
+    | undefined;
+  while (owner && !Object.hasOwn(owner, 'postConstruct')) {
+    owner = Object.getPrototypeOf(owner) as typeof owner;
+  }
+  if (!owner || owner[CHART_POST_PATCHED] || typeof owner.postConstruct !== 'function') {
+    return;
+  }
+  owner[CHART_POST_PATCHED] = true;
+  const origPostConstruct = owner.postConstruct;
+  owner.postConstruct = function (this: { chart?: unknown }, ...args: unknown[]) {
+    const result = origPostConstruct.apply(this, args);
+    guardChartProxyPrototype(this.chart);
+    return result;
+  };
+}
+
 export function createTetherWidgets() {
   const base = createWidgets({});
   return {
@@ -677,6 +730,7 @@ export function createTetherWidgets() {
       if (widget.id === 'grid') {
         return { ...widget, comp: TetherGridWidget };
       }
+      guardChartWidgetPrototype(widget.comp);
       return widget;
     }),
   };

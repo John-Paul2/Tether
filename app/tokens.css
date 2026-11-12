@@ -53,16 +53,21 @@
   /* Scrim behind the narrow-viewport Doctor drawer and dialogs. */
   --scrim: rgba(7, 9, 16, 0.72);
 
-  /* Translucent frosted glass surfaces for pill navbar, pill buttons, and top menus */
+  /* Translucent frosted glass surfaces for pill navbar, pill buttons, top menus, and Doctor tile */
   --glass-bar-bg: rgba(10, 13, 20, 0.68);
   --glass-bg: rgba(17, 21, 31, 0.58);
   --glass-bg-hover: rgba(29, 36, 52, 0.76);
   --glass-menu-bg: rgba(15, 19, 30, 0.88);
+  --glass-panel-bg: rgba(15, 19, 30, 0.78);
+  --glass-panel-tint: rgba(17, 21, 31, 0.45);
   --glass-pill-active: rgba(139, 157, 255, 0.18);
   --glass-border: rgba(232, 236, 244, 0.12);
   --glass-border-strong: rgba(232, 236, 244, 0.22);
   --glass-highlight: inset 0 1px 0 rgba(232, 236, 244, 0.10);
   --glass-shadow: 0 20px 48px rgba(0, 0, 0, 0.56), inset 0 1px 0 rgba(232, 236, 244, 0.10);
+  --glass-snap-bg: rgba(139, 157, 255, 0.14);
+  --scrollbar-thumb: rgba(124, 134, 157, 0.34);
+  --scrollbar-thumb-hover: rgba(139, 157, 255, 0.56);
 
   /* Chart series: neutral-to-accent family so state colours stay meaningful (rule 2.2). */
   --chart-1: #8b9dff;

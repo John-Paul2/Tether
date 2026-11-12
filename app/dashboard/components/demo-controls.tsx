@@ -320,7 +320,7 @@ export function DemoControlsPanel({
             layoutId="tether-demo-surface"
             style={{ borderRadius: 16 }}
             transition={GLASS_SPRING}
-            className="tether-glass-menu fixed right-3 top-3 z-50 max-h-[calc(100dvh-24px)] w-[min(480px,calc(100vw-24px))] overflow-y-auto p-4 text-fg sm:right-6"
+            className="tether-glass-menu tether-doctor-scroll fixed right-3 top-5 z-50 max-h-[calc(100dvh-32px)] w-[min(480px,calc(100vw-24px))] overflow-y-auto p-4 text-fg sm:right-6 sm:top-6"
           >
             <motion.div
               initial={{ opacity: 0, y: -4 }}

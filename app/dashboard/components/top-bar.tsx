@@ -18,7 +18,6 @@ import {
   Redo2,
   RefreshCw,
   Settings,
-  Stethoscope,
   Undo2,
   X,
 } from 'lucide-react';
@@ -135,10 +134,6 @@ export function TopBar({
   const [refreshing, startRefresh] = useTransition();
   const at = useSyncExternalStore(subscribeNow, () => currentNow, () => 0);
 
-  const [reportMenuOpen, setReportMenuOpen] = useState(false);
-  const reportTriggerRef = useRef<HTMLButtonElement>(null);
-  const reportMenuRef = useRef<HTMLDivElement>(null);
-
   const [demoOpen, setDemoOpen] = useState(false);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -151,6 +146,7 @@ export function TopBar({
 
   const multipleReports = reports.length > 1;
   const activePageTitle = pages.find((p) => p.id === selectedPageId)?.title;
+  const hasDrift = openDriftCount > 0;
 
   const handleRefresh = () => {
     startRefresh(() => {
@@ -229,57 +225,6 @@ export function TopBar({
     };
   }, [settingsOpen]);
 
-  // Report switcher menu keyboard & outside click handling (when multipleReports exists)
-  useEffect(() => {
-    if (!reportMenuOpen) return;
-
-    const getItems = () =>
-      Array.from(
-        reportMenuRef.current?.querySelectorAll<HTMLButtonElement>(
-          '[role="menuitem"]:not([disabled])',
-        ) ?? [],
-      );
-
-    const raf = requestAnimationFrame(() => getItems()[0]?.focus());
-
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (
-        !reportMenuRef.current?.contains(target) &&
-        !reportTriggerRef.current?.contains(target)
-      ) {
-        setReportMenuOpen(false);
-      }
-    };
-
-    const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        setReportMenuOpen(false);
-        reportTriggerRef.current?.focus();
-        return;
-      }
-      const list = getItems();
-      if (list.length === 0) return;
-      const idx = list.indexOf(document.activeElement as HTMLButtonElement);
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        list[(idx + 1) % list.length]?.focus();
-      } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        list[(idx - 1 + list.length) % list.length]?.focus();
-      }
-    };
-
-    document.addEventListener('pointerdown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      cancelAnimationFrame(raf);
-      document.removeEventListener('pointerdown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [reportMenuOpen]);
-
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (pages.length <= 1) return;
     let nextIndex = -1;
@@ -303,7 +248,7 @@ export function TopBar({
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-30">
-      <header className="relative flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 pt-3 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr]">
+      <header className="relative flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 pt-5 sm:px-6 sm:pt-6 md:grid md:grid-cols-[1fr_auto_1fr]">
         {/* Left side: Fixed floating Tether logo + wordmark */}
         <div className="pointer-events-auto flex w-fit shrink-0 items-center gap-2.5 md:justify-self-start">
           <span
@@ -317,11 +262,11 @@ export function TopBar({
           </span>
         </div>
 
-        {/* Center: Floating frosted glass pill navbar with ONLY Health, Incidents (report pages), and Tether monitor */}
-        <div className="order-3 flex w-full justify-center md:order-2 md:w-auto md:justify-self-center">
+        {/* Center: Floating frosted glass pill navbar (Health & Incidents only) + clickable Doctor status pill */}
+        <div className="order-3 flex w-full flex-wrap items-center justify-center gap-2.5 md:order-2 md:w-auto md:justify-self-center">
           <nav
             aria-label="Report navigation"
-            className="tether-glass-nav pointer-events-auto inline-flex max-w-full items-center gap-1 rounded-full px-1.5 py-1"
+            className="tether-glass-nav pointer-events-auto inline-flex max-w-full items-center rounded-full px-1.5 py-1"
           >
             <div
               role="tablist"
@@ -364,103 +309,48 @@ export function TopBar({
                 );
               })}
             </div>
-
-            <span className="mx-1 h-4 w-px shrink-0 bg-[var(--glass-border)]" aria-hidden />
-
-            {/* Report name inside the pill navbar; switches reports when >1 exists */}
-            <div className="relative min-w-0">
-              {multipleReports ? (
-                <>
-                  <button
-                    ref={reportTriggerRef}
-                    type="button"
-                    disabled={!ready}
-                    aria-haspopup="menu"
-                    aria-expanded={reportMenuOpen}
-                    title="Switch report"
-                    onClick={() => {
-                      setDemoOpen(false);
-                      setSettingsOpen(false);
-                      setReportMenuOpen((v) => !v);
-                    }}
-                    className="cursor-pointer truncate rounded-full px-3 py-1 text-sm font-normal text-fg-2 whitespace-nowrap transition-colors hover:bg-raised/60 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {activeReport.name}
-                  </button>
-                  <AnimatePresence>
-                    {reportMenuOpen && (
-                      <motion.div
-                        ref={reportMenuRef}
-                        role="menu"
-                        aria-label="Switch report"
-                        initial={{ opacity: 0, y: -6, scale: 0.96 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -4, scale: 0.97 }}
-                        transition={GLASS_SPRING}
-                        className="tether-glass-menu absolute left-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-[var(--radius-card)] py-1.5"
-                      >
-                        {reports.map((report) => {
-                          const isCurrent = report.id === activeReport.id;
-                          return (
-                            <MenuItem
-                              key={report.id}
-                              aria-checked={isCurrent}
-                              onClick={() => {
-                                setReportMenuOpen(false);
-                                onSelectReport(report.id);
-                              }}
-                            >
-                              <span className="truncate">{report.name}</span>
-                              {isCurrent && (
-                                <Check className="size-4 shrink-0 text-accent" strokeWidth={1.5} />
-                              )}
-                            </MenuItem>
-                          );
-                        })}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </>
-              ) : (
-                <span className="block truncate px-3 py-1 text-sm font-normal text-fg-2 whitespace-nowrap">
-                  {activeReport.name}
-                </span>
-              )}
-            </div>
           </nav>
-        </div>
 
-        {/* Right side: Narrow Doctor drawer trigger (xl:hidden), standalone DEMO pill icon button, standalone Settings pill icon button */}
-        <div className="pointer-events-auto order-2 flex shrink-0 items-center gap-2 md:order-3 md:justify-self-end">
           {onToggleDoctorDrawer && (
             <button
               ref={doctorTriggerRef}
               type="button"
+              data-testid="doctor-status-toggle"
               aria-expanded={doctorDrawerOpen}
               aria-controls="doctor-drawer-aside"
               aria-haspopup="dialog"
+              title={doctorDrawerOpen ? 'Hide Doctor panel' : 'Open Doctor panel'}
               aria-label={
-                openDriftCount > 0
-                  ? `Open Doctor panel (${openDriftCount} open drift)`
-                  : 'Open Doctor panel'
+                hasDrift
+                  ? `Toggle Doctor panel (${openDriftCount} open drift)`
+                  : 'Toggle Doctor panel (In sync)'
               }
               onClick={onToggleDoctorDrawer}
-              className={`tether-glass-pill xl:hidden inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                doctorDrawerOpen
-                  ? 'border-accent bg-[var(--glass-pill-active)] text-accent'
-                  : 'border-accent/45 text-accent'
+              className={`tether-glass-pill pointer-events-auto inline-flex h-[38px] shrink-0 cursor-pointer items-center gap-2 rounded-full px-3.5 text-xs font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                hasDrift
+                  ? doctorDrawerOpen
+                    ? 'border-drift bg-drift-soft text-drift'
+                    : 'border-drift/55 bg-drift-soft/70 text-drift hover:border-drift'
+                  : doctorDrawerOpen
+                    ? 'border-sync/70 bg-sync-soft text-sync'
+                    : 'text-sync hover:border-sync/55 hover:bg-sync-soft/60'
               }`}
             >
-              <Stethoscope className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
-              <span>Doctor</span>
-              {openDriftCount > 0 && (
-                <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-drift-soft px-1.5 font-mono text-[11px] font-semibold text-drift tabular-nums">
-                  {openDriftCount}
-                </span>
-              )}
+              <span
+                className={`size-2 shrink-0 rounded-full ${
+                  hasDrift ? 'bg-drift tether-drift-glow' : 'bg-sync'
+                }`}
+                aria-hidden
+              />
+              <span className="whitespace-nowrap">
+                {hasDrift ? `${openDriftCount} open` : 'In sync'}
+              </span>
             </button>
           )}
+        </div>
 
+        {/* Right side: standalone DEMO pill icon button, standalone Settings pill icon button */}
+        <div className="pointer-events-auto order-2 flex shrink-0 items-center gap-2 md:order-3 md:justify-self-end">
           {/* Standalone DEMO pill button -> morphs cleanly into top frosted DEMO menu */}
           <DemoControlsPanel
             dropWebhooks={dropWebhooks}
@@ -472,7 +362,6 @@ export function TopBar({
             onOpenChange={(next) => {
               if (next) {
                 setSettingsOpen(false);
-                setReportMenuOpen(false);
               }
               setDemoOpen(next);
             }}
@@ -494,7 +383,6 @@ export function TopBar({
                 transition={GLASS_SPRING}
                 onClick={() => {
                   setDemoOpen(false);
-                  setReportMenuOpen(false);
                   setSettingsOpen(true);
                 }}
                 className="tether-glass-pill inline-flex h-9 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-fg-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45"
@@ -518,7 +406,7 @@ export function TopBar({
                   layoutId="tether-settings-surface"
                   style={{ borderRadius: 16 }}
                   transition={GLASS_SPRING}
-                  className="tether-glass-menu fixed right-3 top-3 z-50 w-64 overflow-hidden text-fg sm:right-6"
+                  className="tether-glass-menu fixed right-3 top-5 z-50 w-64 overflow-hidden text-fg sm:right-6 sm:top-6"
                 >
                   <motion.div
                     initial={{ opacity: 0, y: -4 }}
@@ -618,6 +506,33 @@ export function TopBar({
                       >
                         Reset report
                       </MenuItem>
+
+                      {multipleReports && (
+                        <>
+                          <MenuDivider />
+                          <div className="px-3.5 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wider text-fg-3">
+                            Reports
+                          </div>
+                          {reports.map((report) => {
+                            const isCurrent = report.id === activeReport.id;
+                            return (
+                              <MenuItem
+                                key={report.id}
+                                aria-checked={isCurrent}
+                                onClick={() => {
+                                  closeSettingsMenu(false);
+                                  onSelectReport(report.id);
+                                }}
+                              >
+                                <span className="truncate">{report.name}</span>
+                                {isCurrent && (
+                                  <Check className="size-4 shrink-0 text-accent" strokeWidth={1.5} />
+                                )}
+                              </MenuItem>
+                            );
+                          })}
+                        </>
+                      )}
 
                       <MenuDivider />
 

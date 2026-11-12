@@ -502,6 +502,61 @@ body {
   backdrop-filter: blur(28px) saturate(170%);
 }
 
+.tether-glass-panel {
+  background-color: var(--glass-panel-bg);
+  border: 1px solid var(--glass-border-strong);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(24px) saturate(165%);
+  backdrop-filter: blur(24px) saturate(165%);
+}
+
+.tether-glass-snap {
+  background-color: var(--glass-snap-bg);
+  border: 1.5px dashed var(--accent);
+  box-shadow: var(--filament-glow);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  backdrop-filter: blur(12px) saturate(140%);
+}
+
+/* Sleek minimalist scrollbars matching Tether Noir */
+[data-main-scroll='true'],
+.tether-doctor-scroll,
+.ag-body-viewport,
+.ag-body-horizontal-scroll-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+[data-main-scroll='true']::-webkit-scrollbar,
+.tether-doctor-scroll::-webkit-scrollbar,
+.ag-body-viewport::-webkit-scrollbar,
+.ag-body-horizontal-scroll-viewport::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+[data-main-scroll='true']::-webkit-scrollbar-track,
+.tether-doctor-scroll::-webkit-scrollbar-track,
+.ag-body-viewport::-webkit-scrollbar-track,
+.ag-body-horizontal-scroll-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-main-scroll='true']::-webkit-scrollbar-thumb,
+.tether-doctor-scroll::-webkit-scrollbar-thumb,
+.ag-body-viewport::-webkit-scrollbar-thumb,
+.ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: var(--radius-pill);
+}
+
+[data-main-scroll='true']::-webkit-scrollbar-thumb:hover,
+.tether-doctor-scroll::-webkit-scrollbar-thumb:hover,
+.ag-body-viewport::-webkit-scrollbar-thumb:hover,
+.ag-body-horizontal-scroll-viewport::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
 /* Guarantee AG Studio grids keep clean height and never collapse */
 .ag-studio-grid-widget,
 .ag-studio-grid-widget .ag-root-wrapper {
