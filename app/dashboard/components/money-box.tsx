@@ -118,7 +118,7 @@ export function MoneyBox({
             <span className="type-display text-sync tabular-nums">
               {formatHeadlineAmount(Math.round(activeCountdownValue))}
             </span>
-            <span className="font-display text-xl font-semibold leading-tight text-sync">
+            <span className="font-display text-xl font-extrabold leading-tight text-sync">
               healed
             </span>
           </p>
@@ -127,7 +127,7 @@ export function MoneyBox({
             <span className="type-display text-drift tabular-nums">
               {formatHeadlineAmount(openDriftAmount)}
             </span>
-            <span className="font-display text-xl font-semibold leading-tight text-drift">
+            <span className="font-display text-xl font-extrabold leading-tight text-drift">
               at risk
             </span>
           </p>

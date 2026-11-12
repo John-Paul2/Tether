@@ -744,7 +744,7 @@ function ReportsDashboard({ data, licenseKey, aiModels }: DashboardProps) {
             type="button"
             aria-label="Dismiss sandbox status notice"
             onClick={() => setDismissedNoticeAsOf(data.asOf)}
-            className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-fg-3 transition-colors hover:bg-raised hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-fg-3 transition-colors hover:bg-raised hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
           >
             <X className="size-3.5" strokeWidth={1.5} aria-hidden />
           </button>

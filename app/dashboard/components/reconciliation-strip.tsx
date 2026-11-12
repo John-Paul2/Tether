@@ -48,7 +48,7 @@ function EventNode({
         }`}
       >
         <span
-          className={`inline-flex size-3.5 shrink-0 items-center justify-center rounded-full bg-sync text-on-accent ${transitionClass}`}
+          className={`inline-flex size-3.5 shrink-0 items-center justify-center rounded-full bg-sync-solid text-on-solid ${transitionClass}`}
           aria-hidden
         >
           <CheckIcon className={`size-2.5 ${justHealed ? 'tether-tick-draw' : ''}`} strokeWidth={2.2} />
@@ -283,13 +283,13 @@ export function ReconciliationStrip({
       data-checking={isChecking ? 'true' : 'false'}
       style={{ '--stagger-index': 2 } as CSSProperties}
       className={`tether-card-enter flex min-w-0 flex-col justify-between gap-4 rounded-[var(--radius-card)] border bg-surface p-5 transition-colors duration-[var(--dur-fast)] ease-[var(--ease)] ${
-        isChecking ? 'border-accent/55' : 'border-line'
+        isChecking ? 'border-accent-ink/50' : 'border-line'
       }`}
     >
       {paypalStatus.error && (
         <div
           role="status"
-          className="rounded-[var(--radius-input)] border border-warn/30 bg-warn-soft px-3 py-1.5 text-xs font-medium text-warn"
+          className="rounded-[var(--radius-input)] border border-warn/45 bg-warn-soft px-3 py-1.5 text-xs font-medium text-warn-ink"
         >
           Live PayPal sandbox check unavailable ({paypalStatus.error}). Showing local receipt log.
         </div>
@@ -321,7 +321,7 @@ export function ReconciliationStrip({
               onClick={() => void handleCopy(targetOrderId)}
               aria-label={`Copy order ID ${targetOrderId}`}
               title={copied ? 'Copied' : 'Copy order ID'}
-              className={`inline-flex size-6 cursor-pointer items-center justify-center rounded-[var(--radius-input)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+              className={`inline-flex size-6 cursor-pointer items-center justify-center rounded-[var(--radius-input)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink ${
                 copied
                   ? 'text-sync'
                   : 'text-fg-2 hover:bg-raised hover:text-fg'

@@ -93,7 +93,7 @@ export function CreateReportDialog({
           autoFocus
           defaultValue="Untitled report"
           onFocus={(e) => e.currentTarget.select()}
-          className="mt-1.5 h-10 w-full rounded-[var(--radius-input)] border border-line-strong bg-sunken px-3.5 text-sm text-fg focus:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="mt-1.5 h-10 w-full rounded-[var(--radius-input)] border border-line-strong bg-sunken/70 px-3.5 text-sm text-fg focus:border-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
         />
       </form>
     </Dialog>
@@ -151,7 +151,7 @@ export function RenameDialog({
           autoFocus
           defaultValue={initialValue}
           onFocus={(e) => e.currentTarget.select()}
-          className="mt-1.5 h-10 w-full rounded-[var(--radius-input)] border border-line-strong bg-sunken px-3.5 text-sm text-fg focus:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="mt-1.5 h-10 w-full rounded-[var(--radius-input)] border border-line-strong bg-sunken/70 px-3.5 text-sm text-fg focus:border-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
         />
       </form>
     </Dialog>

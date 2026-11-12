@@ -164,7 +164,7 @@ function TetherValueWidget(params: AgWidgetParams<AgValueWidget>) {
     return (
       <div
         data-kpi-accent="warning"
-        className="flex h-full flex-col justify-center gap-1 px-4 py-3 text-xs text-warn"
+        className="flex h-full flex-col justify-center gap-1 px-4 py-3 text-xs text-warn-ink"
       >
         <p className="font-semibold">Metric unavailable</p>
         <p className="truncate text-fg-2">{state.error}</p>
@@ -247,7 +247,7 @@ function TetherValueWidget(params: AgWidgetParams<AgValueWidget>) {
       className="flex h-full flex-col justify-between gap-2 px-4 pb-3 pt-1"
     >
       <p
-        className={`font-display font-semibold tracking-tight tabular-nums whitespace-nowrap ${
+        className={`font-display font-extrabold tracking-tight tabular-nums whitespace-nowrap ${
           isHero
             ? 'text-[40px] leading-[44px]'
             : 'text-[30px] leading-[36px] 2xl:text-[36px] 2xl:leading-[40px]'
@@ -268,8 +268,8 @@ function TetherValueWidget(params: AgWidgetParams<AgValueWidget>) {
 }
 
 const localOrdersGridTheme = themeQuartz.withParams({
-  browserColorScheme: 'dark',
-  accentColor: 'var(--accent)',
+  browserColorScheme: 'light',
+  accentColor: 'var(--accent-deep)',
   backgroundColor: 'var(--bg-surface)',
   foregroundColor: 'var(--text-1)',
   cellTextColor: 'var(--text-1)',
@@ -288,7 +288,7 @@ const localOrdersGridTheme = themeQuartz.withParams({
   fontFamily: 'var(--font-ui-stack)',
   fontSize: 14,
   rowHeight: 48,
-  cellHorizontalPaddingScale: 0.75,
+  cellHorizontalPaddingScale: 0.9,
   rowHoverColor: 'var(--bg-raised)',
   selectedRowBackgroundColor: 'var(--ai-soft)',
   valueChangeValueHighlightBackgroundColor: 'var(--sync-soft)',
@@ -325,10 +325,10 @@ function OrderIdCellRenderer({ value }: CustomCellRendererProps) {
         onClick={(e) => void handleCopy(e)}
         aria-label={`Copy order ID ${text}`}
         title={copied ? 'Copied order ID' : 'Copy order ID'}
-        className={`inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[var(--radius-input)] border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+        className={`inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-[var(--radius-input)] border transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink ${
           copied
             ? 'border-sync/40 bg-sync-soft text-sync'
-            : 'border-line bg-sunken text-fg-2 hover:border-accent/50 hover:bg-ai-soft hover:text-accent'
+            : 'border-line bg-sunken text-fg-2 hover:border-accent-ink/40 hover:bg-ai-soft hover:text-ai'
         }`}
       >
         {copied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
@@ -595,7 +595,7 @@ function TetherLocalOrdersGrid(params: AgGridWidgetProps) {
         <button
           type="button"
           onClick={() => void loadRows()}
-          className="cursor-pointer rounded-full bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="cursor-pointer rounded-full bg-accent px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
         >
           Retry
         </button>
@@ -668,10 +668,12 @@ function TetherGridWidget(params: AgGridWidgetProps) {
 
 const CHART_POST_PATCHED = Symbol.for('tether.chartPostPatched');
 const CHART_PROXY_WAIT_GUARDED = Symbol.for('tether.chartProxyWaitGuarded');
+const CHART_PROXY_STYLE_PATCHED = Symbol.for('tether.chartProxyStylePatched');
 
 type ChartProxyInstance = {
   chart?: unknown;
   waitForUpdate?: (...args: unknown[]) => Promise<unknown>;
+  update?: (options: Record<string, unknown>, ...args: unknown[]) => Promise<unknown>;
 };
 
 type TaggedObject = object & Record<symbol, boolean | undefined>;
@@ -679,23 +681,132 @@ type TaggedObject = object & Record<symbol, boolean | undefined>;
 function guardChartProxyPrototype(proxy: unknown) {
   if (!proxy || typeof proxy !== 'object') return;
   const proto = Object.getPrototypeOf(proxy) as (ChartProxyInstance & TaggedObject) | null;
-  if (!proto || proto[CHART_PROXY_WAIT_GUARDED] || typeof proto.waitForUpdate !== 'function') {
-    return;
-  }
-  proto[CHART_PROXY_WAIT_GUARDED] = true;
-  const origWaitForUpdate = proto.waitForUpdate;
-  proto.waitForUpdate = async function (this: ChartProxyInstance, ...args: unknown[]) {
-    if (!this.chart) return;
-    try {
-      return await origWaitForUpdate.apply(this, args);
-    } catch (err) {
-      // ag-charts-community@14.2.0 omitted `?.` before `.takeFailFastError()` inside `waitForUpdate()`.
-      // When a chart is destroyed mid-await (route switch / StrictMode / HMR), `this.chart` becomes
-      // undefined; swallow only the post-destroy race so no unhandled rejection crashes the page.
+  if (!proto) return;
+
+  if (!proto[CHART_PROXY_WAIT_GUARDED] && typeof proto.waitForUpdate === 'function') {
+    proto[CHART_PROXY_WAIT_GUARDED] = true;
+    const origWaitForUpdate = proto.waitForUpdate;
+    proto.waitForUpdate = async function (this: ChartProxyInstance, ...args: unknown[]) {
       if (!this.chart) return;
-      throw err;
-    }
-  };
+      try {
+        return await origWaitForUpdate.apply(this, args);
+      } catch (err) {
+        // ag-charts-community@14.2.0 omitted `?.` before `.takeFailFastError()` inside `waitForUpdate()`.
+        // When a chart is destroyed mid-await (route switch / StrictMode / HMR), `this.chart` becomes
+        // undefined; swallow only the post-destroy race so no unhandled rejection crashes the page.
+        if (!this.chart) return;
+        throw err;
+      }
+    };
+  }
+
+  if (!proto[CHART_PROXY_STYLE_PATCHED] && typeof proto.update === 'function') {
+    proto[CHART_PROXY_STYLE_PATCHED] = true;
+    const origUpdate = proto.update;
+    proto.update = function (this: ChartProxyInstance, options: Record<string, unknown>, ...args: unknown[]) {
+      if (!options || typeof options !== 'object') {
+        return origUpdate.apply(this, [options, ...args]);
+      }
+
+      const rawTheme =
+        options.theme && typeof options.theme === 'object'
+          ? (options.theme as Record<string, unknown>)
+          : undefined;
+      const existingOverrides =
+        rawTheme?.overrides && typeof rawTheme.overrides === 'object'
+          ? (rawTheme.overrides as Record<string, unknown>)
+          : {};
+      const existingCommon =
+        existingOverrides.common && typeof existingOverrides.common === 'object'
+          ? (existingOverrides.common as Record<string, unknown>)
+          : {};
+      const existingLegend =
+        existingCommon.legend && typeof existingCommon.legend === 'object'
+          ? (existingCommon.legend as Record<string, unknown>)
+          : {};
+      const existingBar =
+        existingOverrides.bar && typeof existingOverrides.bar === 'object'
+          ? (existingOverrides.bar as Record<string, unknown>)
+          : {};
+      const existingBarSeries =
+        existingBar.series && typeof existingBar.series === 'object'
+          ? (existingBar.series as Record<string, unknown>)
+          : {};
+
+      const axisTitleSpacingOverride = (axisKey: string) => {
+        const existingAxes =
+          existingCommon.axes && typeof existingCommon.axes === 'object'
+            ? (existingCommon.axes as Record<string, unknown>)
+            : {};
+        const existingAxis =
+          existingAxes[axisKey] && typeof existingAxes[axisKey] === 'object'
+            ? (existingAxes[axisKey] as Record<string, unknown>)
+            : {};
+        const existingTitle =
+          existingAxis.title && typeof existingAxis.title === 'object'
+            ? (existingAxis.title as Record<string, unknown>)
+            : {};
+        return {
+          ...existingAxis,
+          title: {
+            spacing: 8,
+            ...existingTitle,
+          },
+        };
+      };
+
+      const nextOptions: Record<string, unknown> = {
+        ...options,
+        padding: options.padding ?? { top: 14, right: 14, bottom: 8, left: 10 },
+        theme: rawTheme
+          ? {
+              ...rawTheme,
+              overrides: {
+                ...existingOverrides,
+                common: {
+                  ...existingCommon,
+                  axes: {
+                    ...(existingCommon.axes && typeof existingCommon.axes === 'object'
+                      ? (existingCommon.axes as Record<string, unknown>)
+                      : {}),
+                    category: axisTitleSpacingOverride('category'),
+                    'grouped-category': axisTitleSpacingOverride('grouped-category'),
+                    number: axisTitleSpacingOverride('number'),
+                    log: axisTitleSpacingOverride('log'),
+                    time: axisTitleSpacingOverride('time'),
+                    'unit-time': axisTitleSpacingOverride('unit-time'),
+                    'ordinal-time': axisTitleSpacingOverride('ordinal-time'),
+                  },
+                  legend: {
+                    spacing: 24,
+                    padding: { top: 6, right: 12, bottom: 2, left: 16 },
+                    item: {
+                      paddingX: 18,
+                      marker: {
+                        shape: 'circle',
+                        size: 9,
+                        padding: 8,
+                      },
+                    },
+                    ...existingLegend,
+                  },
+                },
+                bar: {
+                  ...existingBar,
+                  series: {
+                    cornerRadius: 8,
+                    strokeWidth: 0,
+                    ...existingBarSeries,
+                  },
+                },
+              },
+            }
+          : options.theme,
+      };
+
+      return origUpdate.apply(this, [nextOptions, ...args]);
+    };
+  }
 }
 
 function guardChartWidgetPrototype(comp: unknown) {

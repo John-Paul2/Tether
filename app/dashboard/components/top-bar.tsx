@@ -12,7 +12,6 @@ import {
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  Anchor,
   Check,
   Eye,
   Redo2,
@@ -249,17 +248,17 @@ export function TopBar({
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-30">
       <header className="relative flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 pt-5 sm:px-6 sm:pt-6 md:grid md:grid-cols-[1fr_auto_1fr]">
-        {/* Left side: Fixed floating Tether logo + wordmark */}
-        <div className="pointer-events-auto flex w-fit shrink-0 items-center gap-2.5 md:justify-self-start">
-          <span
-            className="tether-glass-pill inline-flex size-8 items-center justify-center rounded-[var(--radius-input)] text-accent"
-            aria-hidden
-          >
-            <Anchor className="size-4" strokeWidth={1.5} />
-          </span>
-          <span className="font-display text-lg font-semibold tracking-tight text-fg">
-            Tether
-          </span>
+        {/* Left side: Fixed floating Tether custom logo */}
+        <div className="pointer-events-auto flex w-fit shrink-0 items-center md:justify-self-start">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/tether-logo.png"
+            alt="Tether"
+            width={935}
+            height={462}
+            draggable={false}
+            className="h-7 w-auto select-none object-contain sm:h-8"
+          />
         </div>
 
         {/* Center: clickable Doctor status pill on the left of the floating frosted glass pill navbar */}
@@ -279,19 +278,19 @@ export function TopBar({
                   : 'Toggle Doctor panel (In sync)'
               }
               onClick={onToggleDoctorDrawer}
-              className={`tether-glass-pill pointer-events-auto inline-flex h-[38px] shrink-0 cursor-pointer items-center gap-2 rounded-full px-3.5 text-xs font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+              className={`tether-glass-pill pointer-events-auto inline-flex h-[38px] shrink-0 cursor-pointer items-center gap-2 rounded-full px-3.5 text-xs font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink ${
                 hasDrift
                   ? doctorDrawerOpen
                     ? 'border-drift bg-drift-soft text-drift'
-                    : 'border-drift/55 bg-drift-soft/70 text-drift hover:border-drift'
+                    : 'border-drift/55 bg-drift-soft/75 text-drift hover:border-drift'
                   : doctorDrawerOpen
-                    ? 'border-sync/70 bg-sync-soft text-sync'
-                    : 'text-sync hover:border-sync/55 hover:bg-sync-soft/60'
+                    ? 'border-sync/65 bg-sync-soft text-sync'
+                    : 'text-sync hover:border-sync/50 hover:bg-sync-soft/70'
               }`}
             >
               <span
                 className={`size-2 shrink-0 rounded-full ${
-                  hasDrift ? 'bg-drift tether-drift-glow' : 'bg-sync'
+                  hasDrift ? 'bg-drift-solid tether-drift-glow' : 'bg-sync-solid'
                 }`}
                 aria-hidden
               />
@@ -329,8 +328,10 @@ export function TopBar({
                     }}
                     title={editing ? 'Double-click to rename' : undefined}
                     onKeyDown={(e) => handleTabKeyDown(e, index)}
-                    className={`relative cursor-pointer rounded-full px-3.5 py-1 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50 ${
-                      selected ? 'text-fg' : 'text-fg-2 hover:text-fg'
+                    className={`relative cursor-pointer rounded-full px-3.5 py-1 text-sm whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink disabled:cursor-not-allowed disabled:opacity-50 ${
+                      selected
+                        ? 'font-semibold text-on-accent'
+                        : 'font-medium text-fg-2 hover:text-fg'
                     }`}
                   >
                     {selected && (
@@ -338,7 +339,7 @@ export function TopBar({
                         layoutId="tether-nav-active-pill"
                         aria-hidden
                         transition={{ type: 'spring', stiffness: 460, damping: 34 }}
-                        className="absolute inset-0 rounded-full border border-accent/40 bg-[var(--glass-pill-active)]"
+                        className="absolute inset-0 rounded-full border border-accent bg-[var(--glass-pill-active)]"
                       />
                     )}
                     <span className="relative z-10">{page.title}</span>
@@ -385,7 +386,7 @@ export function TopBar({
                   setDemoOpen(false);
                   setSettingsOpen(true);
                 }}
-                className="tether-glass-pill inline-flex h-9 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-fg-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45"
+                className="tether-glass-pill inline-flex h-9 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-fg-2 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink disabled:cursor-not-allowed disabled:opacity-45"
               >
                 <Settings className="size-4" strokeWidth={1.5} aria-hidden />
               </motion.button>
@@ -419,7 +420,7 @@ export function TopBar({
                       <div className="flex min-w-0 items-center gap-2">
                         <span
                           className={`size-2 shrink-0 rounded-full ${
-                            paypalError ? 'bg-drift' : paypalSlow ? 'bg-warn' : 'bg-sync'
+                            paypalError ? 'bg-drift-solid' : paypalSlow ? 'bg-warn' : 'bg-sync-solid'
                           }`}
                           title={
                             paypalError
@@ -453,7 +454,7 @@ export function TopBar({
                           title="Refresh data"
                           disabled={refreshing || !ready}
                           onClick={handleRefresh}
-                          className="inline-flex size-7 cursor-pointer items-center justify-center rounded-full text-fg-2 transition-colors hover:bg-raised/70 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-45"
+                          className="inline-flex size-7 cursor-pointer items-center justify-center rounded-full text-fg-2 transition-colors hover:bg-raised/80 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink disabled:opacity-45"
                         >
                           <RefreshCw
                             className={`size-3.5 ${refreshing ? 'animate-spin' : ''}`}
@@ -465,7 +466,7 @@ export function TopBar({
                           type="button"
                           aria-label="Close settings menu"
                           onClick={() => closeSettingsMenu(true)}
-                          className="inline-flex size-7 cursor-pointer items-center justify-center rounded-full text-fg-2 transition-colors hover:bg-raised/70 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                          className="inline-flex size-7 cursor-pointer items-center justify-center rounded-full text-fg-2 transition-colors hover:bg-raised/80 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
                         >
                           <X className="size-3.5" strokeWidth={1.5} aria-hidden />
                         </button>
@@ -526,7 +527,7 @@ export function TopBar({
                               >
                                 <span className="truncate">{report.name}</span>
                                 {isCurrent && (
-                                  <Check className="size-4 shrink-0 text-accent" strokeWidth={1.5} />
+                                  <Check className="size-4 shrink-0 text-ai" strokeWidth={1.75} />
                                 )}
                               </MenuItem>
                             );

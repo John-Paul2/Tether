@@ -452,7 +452,7 @@ export function AppShell({
                     onPointerDown={(e) => handleResizePointerDown('left', e)}
                     className="group absolute inset-y-4 -left-1.5 z-10 flex w-3 cursor-ew-resize items-center justify-center"
                   >
-                    <span className="h-12 w-1 rounded-full bg-[var(--glass-border)] transition-colors group-hover:bg-accent" />
+                    <span className="h-12 w-1 rounded-full bg-[var(--glass-border)] transition-colors group-hover:bg-accent-ink" />
                   </div>
                 )}
 
@@ -465,7 +465,7 @@ export function AppShell({
                     onPointerDown={(e) => handleResizePointerDown('right', e)}
                     className="group absolute inset-y-4 -right-1.5 z-10 flex w-3 cursor-ew-resize items-center justify-center"
                   >
-                    <span className="h-12 w-1 rounded-full bg-[var(--glass-border)] transition-colors group-hover:bg-accent" />
+                    <span className="h-12 w-1 rounded-full bg-[var(--glass-border)] transition-colors group-hover:bg-accent-ink" />
                   </div>
                 )}
 
@@ -498,7 +498,7 @@ export function AppShell({
                       onPointerDown={(e) => handleResizePointerDown('bottom-right', e)}
                       className="group absolute -bottom-1 -right-1 z-20 flex size-5 cursor-nwse-resize items-end justify-end p-1"
                     >
-                      <span className="size-2 rounded-br-[3px] border-b-2 border-r-2 border-fg-3/60 transition-colors group-hover:border-accent" />
+                      <span className="size-2 rounded-br-[3px] border-b-2 border-r-2 border-fg-3/60 transition-colors group-hover:border-accent-ink" />
                     </div>
                   </>
                 )}

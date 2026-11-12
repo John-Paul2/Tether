@@ -27,7 +27,7 @@ const VARIANTS: Record<Variant, string> = {
   ghost:
     'text-fg-2 hover:bg-raised hover:text-fg disabled:text-fg-3',
   danger:
-    'bg-drift text-on-accent hover:brightness-110 disabled:border disabled:border-line disabled:bg-transparent disabled:text-fg-3',
+    'bg-drift-solid text-on-solid hover:brightness-110 disabled:border disabled:border-line disabled:bg-transparent disabled:text-fg-3',
 };
 
 export function Button({
@@ -43,7 +43,7 @@ export function Button({
   return (
     <button
       type="button"
-      className={`inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed ${sizing} ${VARIANTS[variant]} ${className}`}
+      className={`inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink disabled:cursor-not-allowed ${sizing} ${VARIANTS[variant]} ${className}`}
       {...props}
     />
   );
@@ -59,7 +59,7 @@ export function IconButton({
       type="button"
       aria-label={label}
       title={label}
-      className={`inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-fg-2 transition-colors hover:bg-raised hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:text-fg-3 disabled:hover:bg-transparent ${className}`}
+      className={`inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-fg-2 transition-colors hover:bg-raised hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink disabled:cursor-not-allowed disabled:text-fg-3 disabled:hover:bg-transparent ${className}`}
       {...props}
     />
   );
@@ -70,7 +70,7 @@ export type BadgeTone = 'positive' | 'info' | 'warning' | 'negative';
 const BADGE_STYLES: Record<BadgeTone, string> = {
   positive: 'bg-sync-soft text-sync',
   info: 'bg-ai-soft text-ai',
-  warning: 'bg-warn-soft text-warn',
+  warning: 'bg-warn-soft text-warn-ink',
   negative: 'bg-drift-soft text-drift',
 };
 
@@ -118,7 +118,7 @@ export function Dialog({
       ref={ref}
       onClose={onClose}
       onClick={(event) => event.target === ref.current && onClose()}
-      className="m-auto w-[min(460px,calc(100vw-32px))] rounded-[var(--radius-card)] border border-line-strong bg-raised p-0 font-sans text-fg shadow-[var(--shadow-popover)] backdrop:bg-[var(--scrim)]"
+      className="m-auto w-[min(460px,calc(100vw-32px))] rounded-[var(--radius-card)] border border-line-strong bg-surface p-0 font-sans text-fg shadow-[var(--shadow-popover)] backdrop:bg-[var(--scrim)]"
     >
       {open && (
         <div className="p-6">
@@ -209,7 +209,7 @@ export function Menu({
       ref={ref}
       role="menu"
       aria-label={label}
-      className={`absolute top-full z-30 mt-2 w-56 overflow-hidden rounded-[var(--radius-card)] border border-line-strong bg-raised py-1.5 shadow-[var(--shadow-popover)] ${
+      className={`absolute top-full z-30 mt-2 w-56 overflow-hidden rounded-[var(--radius-card)] border border-line-strong bg-surface py-1.5 shadow-[var(--shadow-popover)] ${
         align === 'left' ? 'left-0' : 'right-0'
       } ${className}`}
     >
@@ -227,10 +227,10 @@ export function MenuItem({
     <button
       type="button"
       role="menuitem"
-      className={`flex w-full cursor-pointer items-center justify-between gap-2 px-3.5 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45 ${
+      className={`flex w-full cursor-pointer items-center justify-between gap-2 px-3.5 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent-ink disabled:cursor-not-allowed disabled:opacity-45 ${
         danger
           ? 'text-drift hover:bg-drift-soft disabled:hover:bg-transparent'
-          : 'text-fg hover:bg-surface disabled:hover:bg-transparent'
+          : 'text-fg hover:bg-[var(--glass-item-hover)] disabled:hover:bg-transparent'
       } ${className}`}
       {...props}
     />
@@ -238,5 +238,5 @@ export function MenuItem({
 }
 
 export function MenuDivider() {
-  return <div role="separator" className="my-1.5 border-t border-line" />;
+  return <div role="separator" className="my-1.5 border-t border-[var(--glass-border)]" />;
 }

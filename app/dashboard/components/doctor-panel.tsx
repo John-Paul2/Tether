@@ -481,11 +481,11 @@ export function DoctorPanel({
         </div>
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-input)] border border-accent/30 bg-ai-soft text-accent">
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-input)] border border-ai/20 bg-ai-soft text-ai">
               <StethoscopeIcon className="size-4.5" />
             </span>
             <div className="min-w-0">
-              <h2 className="font-display text-lg font-semibold leading-tight tracking-tight text-fg">
+              <h2 className="font-display text-lg font-extrabold leading-tight tracking-tight text-fg">
                 Doctor panel
               </h2>
               <p className="mt-0.5 truncate text-xs text-fg-2">
@@ -514,7 +514,7 @@ export function DoctorPanel({
           <div
             data-testid="doctor-selected-order"
             data-order-id={selectedOrder.order_id}
-            className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-sunken/75 px-3 py-2 text-xs"
+            className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-[var(--glass-inner-bg)] px-3 py-2 text-xs"
           >
             <div className="flex min-w-0 items-center gap-2">
               <span className="text-fg-3">Selected</span>
@@ -543,7 +543,7 @@ export function DoctorPanel({
                   type="button"
                   disabled={isInvestigating}
                   onClick={() => void handleInvestigate(selectedOrder.order_id)}
-                  className="cursor-pointer rounded-full border border-accent/50 bg-ai-soft px-2.5 py-0.5 text-xs font-medium text-accent transition-colors hover:border-accent hover:bg-ai-soft/80 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="cursor-pointer rounded-full border border-ai/30 bg-ai-soft px-2.5 py-0.5 text-xs font-semibold text-ai transition-colors hover:border-accent hover:bg-accent hover:text-on-accent disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isInvestigating && investigatingOrderId === selectedOrder.order_id
                     ? 'Investigating…'
@@ -560,10 +560,10 @@ export function DoctorPanel({
         {loadingDrift && !paypalSlowNotice && (
           <div
             role="status"
-            className="flex items-center gap-2 rounded-[var(--radius-input)] border border-accent/25 bg-ai-soft px-3 py-2 text-xs font-medium text-accent"
+            className="flex items-center gap-2 rounded-[var(--radius-input)] border border-ai/25 bg-ai-soft px-3 py-2 text-xs font-medium text-ai"
           >
             <span
-              className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-accent/30 border-t-accent"
+              className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-ai/25 border-t-ai"
               aria-hidden
             />
             <span>Checking live PayPal sandbox order status…</span>
@@ -571,7 +571,7 @@ export function DoctorPanel({
         )}
 
         {paypalSlowNotice && (
-          <div className="rounded-[var(--radius-input)] border border-warn/35 bg-warn-soft px-3.5 py-2.5 text-xs text-warn">
+          <div className="rounded-[var(--radius-input)] border border-warn/45 bg-warn-soft px-3.5 py-2.5 text-xs font-medium text-warn-ink">
             {paypalSlowNotice}
           </div>
         )}
@@ -604,7 +604,7 @@ export function DoctorPanel({
           </div>
 
           {driftItems.length === 0 ? (
-            <div className="mt-2.5 rounded-[var(--radius-card)] border border-line bg-sunken/80 p-3.5">
+            <div className="mt-2.5 rounded-[var(--radius-card)] border border-[var(--glass-border)] bg-[var(--glass-inner-bg)] p-3.5">
               <div className="flex items-start gap-2.5">
                 <CheckCircleIcon className="mt-0.5 size-4.5 shrink-0 text-sync" />
                 <div className="min-w-0">
@@ -617,12 +617,12 @@ export function DoctorPanel({
                     type="button"
                     disabled={isInvestigating}
                     onClick={() => void handleInvestigate()}
-                    className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border border-accent/50 bg-ai-soft px-3.5 py-1.5 text-xs font-semibold text-accent transition-colors hover:border-accent hover:bg-ai-soft/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-full border border-ai/35 bg-ai-soft px-3.5 py-1.5 text-xs font-semibold text-ai transition-colors hover:border-accent hover:bg-accent hover:text-on-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isInvestigating && investigatingOrderId === 'system' ? (
                       <>
                         <span
-                          className="size-3 animate-spin rounded-full border-[1.5px] border-accent/35 border-t-accent"
+                          className="size-3 animate-spin rounded-full border-[1.5px] border-ai/30 border-t-ai"
                           aria-hidden
                         />
                         <span>Investigating…</span>
@@ -665,12 +665,12 @@ export function DoctorPanel({
                       type="button"
                       disabled={isInvestigating}
                       onClick={() => void handleInvestigate(item.order_id)}
-                      className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-accent/60 bg-ai-soft px-3.5 py-1.5 text-xs font-semibold text-accent transition-colors hover:border-accent hover:bg-ai-soft/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-full border border-ai/35 bg-ai-soft px-3.5 py-1.5 text-xs font-semibold text-ai transition-colors hover:border-accent hover:bg-accent hover:text-on-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {active ? (
                         <>
                           <span
-                            className="size-3 animate-spin rounded-full border-[1.5px] border-accent/35 border-t-accent"
+                            className="size-3 animate-spin rounded-full border-[1.5px] border-ai/30 border-t-ai"
                             aria-hidden
                           />
                           <span>Investigating…</span>
@@ -690,7 +690,7 @@ export function DoctorPanel({
         {(isInvestigating || steps.length > 0 || agentError) && (
           <section
             aria-label="Live agent trace"
-            className="rounded-[var(--radius-card)] border border-line bg-sunken/70 p-3.5"
+            className="rounded-[var(--radius-card)] border border-[var(--glass-border)] bg-[var(--glass-inner-bg)] p-3.5"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
@@ -704,7 +704,7 @@ export function DoctorPanel({
               {isInvestigating ? (
                 <Badge tone="info">
                   <span
-                    className="size-2.5 animate-spin rounded-full border-[1.5px] border-accent/35 border-t-accent"
+                    className="size-2.5 animate-spin rounded-full border-[1.5px] border-ai/30 border-t-ai"
                     aria-hidden
                   />
                   Streaming…
@@ -715,7 +715,7 @@ export function DoctorPanel({
             </div>
 
             {modelSlowNotice && (
-              <div className="mt-2.5 rounded-[var(--radius-input)] border border-warn/35 bg-warn-soft px-3 py-2 text-xs text-warn">
+              <div className="mt-2.5 rounded-[var(--radius-input)] border border-warn/45 bg-warn-soft px-3 py-2 text-xs font-medium text-warn-ink">
                 {modelSlowNotice}
               </div>
             )}
@@ -747,9 +747,9 @@ export function DoctorPanel({
             )}
 
             {isInvestigating && steps.length === 0 && !agentError && (
-              <div className="mt-2.5 flex items-center gap-2 rounded-[var(--radius-input)] border border-accent/25 bg-ai-soft px-3 py-2.5 text-xs text-accent">
+              <div className="mt-2.5 flex items-center gap-2 rounded-[var(--radius-input)] border border-ai/25 bg-ai-soft px-3 py-2.5 text-xs font-medium text-ai">
                 <span
-                  className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-accent/35 border-t-accent"
+                  className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-ai/30 border-t-ai"
                   aria-hidden
                 />
                 <span>Inspecting PayPal sandbox &amp; local SQLite…</span>
@@ -774,13 +774,13 @@ export function DoctorPanel({
                     <div
                       className={`tether-step-enter rounded-[var(--radius-input)] border px-3 py-2.5 transition-[border-color,box-shadow,background-color] duration-[var(--dur-fast)] ease-[var(--ease)] ${
                         isOutlined
-                          ? 'border-accent bg-ai-soft ring-1 ring-accent'
-                          : 'border-accent/25 bg-ai-soft'
+                          ? 'border-ai bg-ai-soft ring-1 ring-ai'
+                          : 'border-ai/20 bg-ai-soft'
                       }`}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-1.5">
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-accent/35 bg-sunken font-mono text-[11px] font-semibold text-accent tabular-nums">
+                          <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full border border-ai/25 bg-surface font-mono text-[11px] font-semibold text-ai tabular-nums">
                             {step.step}
                           </span>
                           <span className="truncate font-mono text-xs font-semibold text-fg">
@@ -789,15 +789,15 @@ export function DoctorPanel({
                         </div>
 
                         <div className="flex items-center gap-1.5">
-                          <span className="rounded-full border border-line bg-sunken px-2 py-0.5 font-mono text-[11px] text-fg-2 tabular-nums">
+                          <span className="rounded-full border border-line bg-surface px-2 py-0.5 font-mono text-[11px] text-fg-2 tabular-nums">
                             {step.duration_ms} ms
                           </span>
-                          <span className="rounded-full border border-accent/30 bg-sunken px-2 py-0.5 font-mono text-[11px] text-ai">
+                          <span className="rounded-full border border-ai/20 bg-surface px-2 py-0.5 font-mono text-[11px] text-ai">
                             {step.model_used}
                           </span>
                           {isLatestRunning ? (
                             <span
-                              className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-accent/35 border-t-accent"
+                              className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-ai/30 border-t-ai"
                               title="Step running"
                               aria-hidden
                             />
@@ -826,10 +826,10 @@ export function DoctorPanel({
         {diagnosis && (
           <section
             aria-label="Diagnosis"
-            className="tether-diagnosis-enter space-y-3.5 rounded-[var(--radius-card)] border border-line-strong bg-raised p-4"
+            className="tether-diagnosis-enter space-y-3.5 rounded-[var(--radius-card)] border border-[var(--glass-border-strong)] bg-[var(--glass-inner-bg)] p-4"
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-display text-lg font-semibold text-fg">Diagnosis</h3>
+              <h3 className="font-display text-lg font-extrabold text-fg">Diagnosis</h3>
               <Badge tone={rootCauseTone(diagnosis.root_cause)} className="tether-badge-pop">
                 {formatRootCause(diagnosis.root_cause)}
               </Badge>
@@ -839,7 +839,7 @@ export function DoctorPanel({
               <Badge tone={confidenceTone(diagnosis.confidence)}>
                 Confidence: {diagnosis.confidence}
               </Badge>
-              <span className="rounded-full border border-accent/30 bg-ai-soft px-2 py-0.5 font-mono text-[11px] text-ai">
+              <span className="rounded-full border border-ai/20 bg-ai-soft px-2 py-0.5 font-mono text-[11px] text-ai">
                 {diagnosis.model_used}
               </span>
             </div>
@@ -847,14 +847,14 @@ export function DoctorPanel({
             <p className="text-xs leading-relaxed text-fg-2">{diagnosis.summary}</p>
 
             {diagnosis.recommended_action && (
-              <div className="rounded-[var(--radius-input)] border border-line bg-sunken px-3 py-2.5 text-xs text-fg">
+              <div className="rounded-[var(--radius-input)] border border-line bg-sunken/80 px-3 py-2.5 text-xs text-fg">
                 <span className="font-semibold text-fg">Recommended action: </span>
                 <span className="text-fg-2">{diagnosis.recommended_action}</span>
               </div>
             )}
 
             {/* Five safety checks / heal preconditions */}
-            <div className="rounded-[var(--radius-input)] border border-line bg-sunken p-3">
+            <div className="rounded-[var(--radius-input)] border border-line bg-sunken/80 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-fg-2">
                   Safety checks
@@ -942,8 +942,8 @@ export function DoctorPanel({
                         }
                         className={`rounded-[var(--radius-input)] border px-3 py-2 text-xs transition-colors ${
                           isActiveEvidence
-                            ? 'border-accent/60 bg-ai-soft/50 text-fg'
-                            : 'border-line bg-surface text-fg-2'
+                            ? 'border-ai/60 bg-ai-soft/75 text-fg'
+                            : 'border-line bg-sunken/55 text-fg-2'
                         }`}
                       >
                         <p className="leading-relaxed">{ev.claim}</p>
@@ -959,7 +959,7 @@ export function DoctorPanel({
                             e.preventDefault();
                             scrollToStep(ev.tool_call_id);
                           }}
-                          className="mt-1 inline-flex items-center gap-1 rounded font-mono text-[11px] font-medium text-accent hover:text-accent-strong hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                          className="mt-1 inline-flex items-center gap-1 rounded font-mono text-[11px] font-semibold text-ai hover:text-fg hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
                         >
                           {matchedStep
                             ? `Step ${matchedStep.step}: ${matchedStep.tool_name}`
@@ -977,7 +977,7 @@ export function DoctorPanel({
 
         {/* Heal progress & outcome */}
         {healSlowNotice && (
-          <div className="rounded-[var(--radius-input)] border border-accent/35 bg-ai-soft px-3.5 py-2.5 text-xs font-medium text-accent">
+          <div className="rounded-[var(--radius-input)] border border-ai/25 bg-ai-soft px-3.5 py-2.5 text-xs font-medium text-ai">
             {healSlowNotice}
           </div>
         )}
@@ -1043,7 +1043,7 @@ export function DoctorPanel({
                 <p className="text-xs font-semibold text-fg">Seconds to fixed</p>
                 <p className="text-[11px] text-fg-3">PayPal resend → verified webhook receipt</p>
               </div>
-              <p className="font-display text-[28px] font-semibold leading-none text-sync tabular-nums">
+              <p className="font-display text-[28px] font-extrabold leading-none text-sync tabular-nums">
                 {healOutcome.seconds_to_fixed !== null ? `${healOutcome.seconds_to_fixed}s` : '—'}
               </p>
             </div>
@@ -1060,18 +1060,18 @@ export function DoctorPanel({
       {/* Sticky Footer: Preview line + Single filled Approve fix button */}
       <footer className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--glass-panel-tint)] p-4">
         {diagnosis?.order_id && resendEventId ? (
-          <p className="mb-2.5 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-sunken/75 px-3 py-2 text-xs leading-relaxed text-fg-2">
+          <p className="mb-2.5 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-[var(--glass-inner-bg)] px-3 py-2 text-xs leading-relaxed text-fg-2">
             Will resend webhook event{' '}
             <code className="font-mono font-semibold text-fg">{resendEventId}</code> for order{' '}
             <code className="font-mono font-semibold text-fg">{diagnosis.order_id}</code>. No
             PayPal state is changed.
           </p>
         ) : disabledFixReason ? (
-          <p className="mb-2.5 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-sunken/75 px-3 py-2 text-xs leading-relaxed text-fg-3">
+          <p className="mb-2.5 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-[var(--glass-inner-bg)] px-3 py-2 text-xs leading-relaxed text-fg-2">
             {disabledFixReason}
           </p>
         ) : (
-          <p className="mb-2 text-xs text-fg-3">
+          <p className="mb-2 text-xs text-fg-2">
             Investigate a drifting order to prepare guarded webhook replay.
           </p>
         )}

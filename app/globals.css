@@ -17,13 +17,18 @@
   --color-fg-2: var(--text-2);
   --color-fg-3: var(--text-3);
   --color-on-accent: var(--text-on-accent);
+  --color-on-solid: var(--text-on-solid);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-deep);
   --color-sync: var(--sync);
+  --color-sync-solid: var(--sync-solid);
   --color-sync-soft: var(--sync-soft);
   --color-drift: var(--drift);
+  --color-drift-solid: var(--drift-solid);
   --color-drift-soft: var(--drift-soft);
   --color-warn: var(--warn);
+  --color-warn-ink: var(--warn-content);
   --color-warn-soft: var(--warn-soft);
   --color-ai: var(--ai);
   --color-ai-soft: var(--ai-soft);
@@ -51,21 +56,24 @@ body {
   font-family: var(--font-ui-stack);
   font-size: var(--fs-base);
   line-height: var(--leading-body);
+  font-feature-settings: "calt";
 }
 
-/* Type scale (design file 3): 12 / 13 / 14 / 16 / 20 / 28 / 44 */
+/* Type scale (DESIGN-wise.md heavy geometric display + Inter UI) */
 .type-display {
   font-family: var(--font-display-stack);
   font-size: var(--fs-display);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-display);
   line-height: var(--leading-display);
+  letter-spacing: -0.025em;
   font-variant-numeric: lining-nums tabular-nums;
 }
 .type-h1 {
   font-family: var(--font-display-stack);
   font-size: var(--fs-xl);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-display);
   line-height: var(--leading-display);
+  letter-spacing: -0.02em;
 }
 .type-h2 {
   font-family: var(--font-ui-stack);
@@ -473,16 +481,16 @@ body {
   background-color: var(--glass-bg);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-highlight);
-  -webkit-backdrop-filter: blur(20px) saturate(155%);
-  backdrop-filter: blur(20px) saturate(155%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
 }
 
 .tether-glass-pill {
   background-color: var(--glass-bg);
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-highlight);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
   transition:
     background-color var(--dur-fast) var(--ease),
     border-color var(--dur-fast) var(--ease),
@@ -498,21 +506,21 @@ body {
   background-color: var(--glass-menu-bg);
   border: 1px solid var(--glass-border-strong);
   box-shadow: var(--glass-shadow);
-  -webkit-backdrop-filter: blur(28px) saturate(170%);
-  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(185%);
+  backdrop-filter: blur(18px) saturate(185%);
 }
 
 .tether-glass-panel {
   background-color: var(--glass-panel-bg);
   border: 1px solid var(--glass-border-strong);
   box-shadow: var(--glass-shadow);
-  -webkit-backdrop-filter: blur(24px) saturate(165%);
-  backdrop-filter: blur(24px) saturate(165%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
 }
 
 .tether-glass-snap {
   background-color: var(--glass-snap-bg);
-  border: 1.5px dashed var(--accent);
+  border: 1.5px dashed var(--accent-deep);
   box-shadow: var(--filament-glow);
   -webkit-backdrop-filter: blur(12px) saturate(140%);
   backdrop-filter: blur(12px) saturate(140%);
@@ -563,8 +571,20 @@ body {
   min-height: 320px;
 }
 
-/* Cards: 12px radius, 1px border, elevation by surface not shadow (design file 4) */
+/* Leading breathing space before widget headings (charts, tables, KPIs) and table first columns */
+.ag-studio-layout-widget-header {
+  padding-inline-start: var(--space-2);
+  padding-top: var(--space-1);
+}
+
+.ag-studio-grid-widget .ag-header-cell[aria-colindex='1'],
+.ag-studio-grid-widget .ag-cell[aria-colindex='1'] {
+  padding-inline-start: var(--space-4) !important;
+}
+
+/* Cards: Wise 24px radius, 1px hairline border, surface contrast elevation */
 .ag-studio-layout-widget-container {
+  overflow: hidden;
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-none);
   transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
@@ -614,25 +634,25 @@ body {
   cursor: pointer;
 }
 
-/* 6.5: selected row = 2px left border in --accent and faint --ai-soft fill */
+/* 6.5: selected row = 2px left border in --accent-deep and faint --ai-soft fill */
 .tether-local-orders-grid .ag-row.tether-selected-row {
   background-color: var(--ai-soft);
-  box-shadow: inset 2px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent-deep);
 }
 
 .tether-local-orders-grid .ag-row.tether-selected-row:hover {
   background-color: color-mix(in srgb, var(--ai-soft) 100%, var(--bg-raised));
 }
 
-/* 6.5: drifting row = --drift-soft fill with a 2px --drift left border (inset, no layout shift) */
+/* 6.5: drifting row = --drift-soft fill with a 3px --drift left border (inset, no layout shift) */
 .tether-local-orders-grid .ag-row.tether-drifting-row {
   background-color: var(--drift-soft);
-  box-shadow: inset 2px 0 0 var(--drift);
+  box-shadow: inset 3px 0 0 var(--drift);
 }
 
 .tether-local-orders-grid .ag-row.tether-drifting-row.tether-selected-row {
   background-color: var(--drift-soft);
-  box-shadow: inset 2px 0 0 var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent-deep);
 }
 
 .tether-local-orders-grid .ag-row.tether-drifting-row:hover {

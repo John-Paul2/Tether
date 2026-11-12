@@ -9,8 +9,7 @@ export function TopBarSkeleton() {
     <div className="pointer-events-none fixed inset-x-0 top-0 z-30" aria-hidden>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 pt-5 sm:px-6 sm:pt-6 md:grid md:grid-cols-[1fr_auto_1fr]">
         <div className="flex items-center gap-2.5 md:justify-self-start">
-          <Skeleton className="size-8 rounded-[var(--radius-input)]" />
-          <Skeleton className="h-5 w-16 rounded-[var(--radius-input)]" />
+          <Skeleton className="h-7 w-16 rounded-[var(--radius-input)]" />
         </div>
         <div className="order-3 flex w-full flex-wrap items-center justify-center gap-2.5 md:order-2 md:w-auto md:justify-self-center">
           <Skeleton className="h-9 w-24 rounded-full" />

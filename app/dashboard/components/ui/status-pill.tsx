@@ -22,14 +22,14 @@ const VARIANT_TONES: Record<StatusPillVariant, StatusPillTone> = {
 const TONE_CLASSES: Record<StatusPillTone, { wrap: string; dot: string }> = {
   sync: {
     wrap: 'bg-sync-soft text-sync',
-    dot: 'bg-sync',
+    dot: 'bg-sync-solid',
   },
   drift: {
     wrap: 'bg-drift-soft text-drift',
-    dot: 'bg-drift',
+    dot: 'bg-drift-solid',
   },
   warn: {
-    wrap: 'bg-warn-soft text-warn',
+    wrap: 'bg-warn-soft text-warn-ink',
     dot: 'bg-warn',
   },
   ai: {

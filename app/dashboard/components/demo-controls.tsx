@@ -286,13 +286,13 @@ export function DemoControlsPanel({
           style={{ borderRadius: 999 }}
           transition={GLASS_SPRING}
           onClick={() => setOpen(true)}
-          className="tether-glass-pill inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border-warn/45 px-3.5 text-xs font-semibold tracking-wide text-warn hover:border-warn focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
+          className="tether-glass-pill inline-flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border-warn/50 px-3.5 text-xs font-semibold tracking-wide text-warn-ink hover:border-warn hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           <FlaskConical className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
           <span>DEMO</span>
           {dropWebhooks && (
             <span
-              className="size-1.5 shrink-0 rounded-full bg-drift"
+              className="size-1.5 shrink-0 rounded-full bg-drift-solid"
               title="Dropping incoming webhooks"
               aria-hidden
             />
@@ -332,7 +332,7 @@ export function DemoControlsPanel({
               <div className="flex items-start justify-between gap-3 border-b border-[var(--glass-border)] pb-3">
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-warn/40 bg-warn-soft px-2.5 py-0.5 text-xs font-semibold text-warn">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-warn/45 bg-warn-soft px-2.5 py-0.5 text-xs font-semibold text-warn-ink">
                       <FlaskConical className="size-3.5" strokeWidth={1.5} aria-hidden />
                       DEMO
                     </span>
@@ -353,7 +353,7 @@ export function DemoControlsPanel({
                     restoreFocusRef.current = true;
                     setOpen(false);
                   }}
-                  className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-fg-2 transition-colors hover:bg-raised/70 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-fg-2 transition-colors hover:bg-raised/80 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
                 >
                   <X className="size-4" strokeWidth={1.5} aria-hidden />
                 </button>
@@ -363,10 +363,10 @@ export function DemoControlsPanel({
                 {/* TODO(demo-controls): Make "Load a drifting order" the first item here once implemented; do not build it yet. */}
 
                 {/* Fault injection toggle */}
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] border border-[var(--glass-border)] bg-surface/65 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] border border-[var(--glass-border)] bg-[var(--glass-inner-bg)] p-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-fg">Simulate dropped webhooks</p>
-                    <p className="text-xs text-fg-3">
+                    <p className="text-xs text-fg-2">
                       {dropWebhooks
                         ? 'Active: dropping incoming webhooks'
                         : 'Off: normal webhook handling'}
@@ -376,7 +376,7 @@ export function DemoControlsPanel({
                     <Badge tone={dropWebhooks ? 'negative' : 'positive'}>
                       <span
                         className={`size-1.5 rounded-full ${
-                          dropWebhooks ? 'bg-drift' : 'bg-sync'
+                          dropWebhooks ? 'bg-drift-solid' : 'bg-sync-solid'
                         }`}
                         aria-hidden
                       />
@@ -390,14 +390,14 @@ export function DemoControlsPanel({
                       aria-label="Simulate dropped webhooks"
                       disabled={togglingFault}
                       onClick={handleToggleFault}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border px-0.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60 ${
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border px-0.5 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink disabled:cursor-not-allowed disabled:opacity-60 ${
                         dropWebhooks
-                          ? 'border-drift bg-drift'
-                          : 'border-line-strong bg-sunken'
+                          ? 'border-drift-solid bg-drift-solid'
+                          : 'border-line-strong bg-[var(--glass-input-bg)]'
                       }`}
                     >
                       <span
-                        className={`inline-block size-4 rounded-full bg-fg transition-transform ${
+                        className={`inline-block size-4 rounded-full bg-surface shadow-xs ring-1 ring-line transition-transform ${
                           dropWebhooks ? 'translate-x-5' : 'translate-x-0'
                         }`}
                       />
@@ -406,10 +406,10 @@ export function DemoControlsPanel({
                 </div>
 
                 {/* Step 1: Create sandbox order */}
-                <div className="space-y-2 rounded-[var(--radius-card)] border border-[var(--glass-border)] bg-surface/65 p-3">
+                <div className="space-y-2 rounded-[var(--radius-card)] border border-[var(--glass-border)] bg-[var(--glass-inner-bg)] p-3">
                   <p className="text-xs font-semibold text-fg-2">1. Create sandbox order</p>
                   <div className="flex flex-wrap items-center gap-2">
-                    <label htmlFor="demo-order-amount" className="text-xs font-medium text-fg-3">
+                    <label htmlFor="demo-order-amount" className="text-xs font-medium text-fg-2">
                       USD
                     </label>
                     <input
@@ -418,7 +418,7 @@ export function DemoControlsPanel({
                       inputMode="decimal"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
-                      className="h-9 w-24 rounded-[var(--radius-input)] border border-line-strong bg-sunken/85 px-3 font-mono text-sm text-fg tabular-nums focus:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      className="h-9 w-24 rounded-[var(--radius-input)] border border-line-strong bg-[var(--glass-input-bg)] px-3 font-mono text-sm text-fg tabular-nums focus:border-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
                     />
                     <Button
                       variant="tertiary"
@@ -431,7 +431,7 @@ export function DemoControlsPanel({
                   </div>
 
                   {createdOrder && (
-                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-sunken/80 px-3 py-2 text-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-[var(--glass-input-bg)] px-3 py-2 text-xs">
                       <span className="font-medium text-fg tabular-nums">
                         Order <code className="font-mono text-paypal">{createdOrder.order_id}</code> ($
                         {createdOrder.amount})
@@ -441,7 +441,7 @@ export function DemoControlsPanel({
                           href={createdOrder.approve_link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 font-semibold text-accent hover:text-accent-strong hover:underline"
+                          className="inline-flex items-center gap-1 font-semibold text-ai hover:text-fg hover:underline"
                         >
                           Approve in PayPal sandbox
                           <ExternalLink className="size-3.5" strokeWidth={1.5} aria-hidden />
@@ -454,7 +454,7 @@ export function DemoControlsPanel({
                 </div>
 
                 {/* Step 2: Capture sandbox order */}
-                <div className="space-y-2 rounded-[var(--radius-card)] border border-[var(--glass-border)] bg-surface/65 p-3">
+                <div className="space-y-2 rounded-[var(--radius-card)] border border-[var(--glass-border)] bg-[var(--glass-inner-bg)] p-3">
                   <p className="text-xs font-semibold text-fg-2">2. Capture sandbox order</p>
                   <div className="flex flex-wrap items-center gap-2">
                     <label htmlFor="demo-capture-order-id" className="sr-only">
@@ -467,7 +467,7 @@ export function DemoControlsPanel({
                       placeholder="e.g. 12N95587M6071792S"
                       value={captureOrderId}
                       onChange={(e) => setCaptureOrderId(e.target.value)}
-                      className="h-9 min-w-[170px] flex-1 rounded-[var(--radius-input)] border border-line-strong bg-sunken/85 px-3 font-mono text-sm text-fg focus:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                      className="h-9 min-w-[170px] flex-1 rounded-[var(--radius-input)] border border-line-strong bg-[var(--glass-input-bg)] px-3 font-mono text-sm text-fg focus:border-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
                     />
                     <datalist id="unpaid-local-orders">
                       {unpaidOrders.map((o) => (
@@ -488,7 +488,7 @@ export function DemoControlsPanel({
                 </div>
 
                 {slowNotice && (
-                  <p className="rounded-[var(--radius-input)] border border-warn/30 bg-warn-soft px-3 py-2 text-xs font-medium text-warn">
+                  <p className="rounded-[var(--radius-input)] border border-warn/45 bg-warn-soft px-3 py-2 text-xs font-medium text-warn-ink">
                     {slowNotice}
                   </p>
                 )}
@@ -498,7 +498,7 @@ export function DemoControlsPanel({
                     className={`space-y-1.5 rounded-[var(--radius-input)] border px-3 py-2.5 text-xs ${
                       statusMessage.tone === 'negative'
                         ? 'tether-error-shake border-drift/45 bg-drift-soft'
-                        : 'border-[var(--glass-border)] bg-surface/75'
+                        : 'border-[var(--glass-border)] bg-[var(--glass-inner-bg)]'
                     }`}
                   >
                     <div className="flex flex-wrap items-center gap-2">
@@ -518,7 +518,7 @@ export function DemoControlsPanel({
                         href={createdOrder.approve_link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-mono text-xs font-medium text-accent hover:text-accent-strong hover:underline"
+                        className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-ai hover:text-fg hover:underline"
                       >
                         {createdOrder.approve_link}
                         <ExternalLink className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
