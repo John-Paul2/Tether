@@ -6,6 +6,7 @@ import {
   insertHealLog,
   type HealLogRow,
 } from '@/lib/db';
+import { getPayPalAccessToken } from '@/lib/paypal';
 
 const PAYPAL_SANDBOX_BASE_URL = 'https://api-m.sandbox.paypal.com';
 const RESEND_COOLDOWN_MS = 60_000;
@@ -82,36 +83,6 @@ export type HealPreconditionsResult = {
   };
   checks: HealConditionCheck[];
 };
-
-async function getPayPalAccessToken(): Promise<string> {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const clientSecret = process.env.PAYPAL_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Missing PayPal credentials');
-  }
-
-  const response = await fetch(`${PAYPAL_SANDBOX_BASE_URL}/v1/oauth2/token`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials',
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(`PayPal token request failed with status ${response.status}`);
-  }
-
-  const data = (await response.json()) as { access_token?: string };
-  if (!data.access_token) {
-    throw new Error('PayPal token response missing access_token');
-  }
-
-  return data.access_token;
-}
 
 async function fetchPayPalOrder(
   orderId: string,

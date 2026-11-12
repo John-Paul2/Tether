@@ -84,8 +84,9 @@ async function main() {
     // =========================================================================
     console.log('\n--- Scenario (a): Dropped webhook ---');
     setSetting('drop_webhooks', 'false');
-    process.env.PUBLIC_BASE_URL =
-      originalPublicBaseUrl || 'https://replica-tapeless-curliness.ngrok-free.dev';
+    if (originalPublicBaseUrl) {
+      process.env.PUBLIC_BASE_URL = originalPublicBaseUrl;
+    }
 
     // Set 2JJ686322T369532X as unpaid locally and remove its local capture webhook row
     // while keeping its real PAYMENT.CAPTURE.COMPLETED event in PayPal sandbox
@@ -143,8 +144,9 @@ async function main() {
     await new Promise((r) => setTimeout(r, 12_000));
     console.log('\n--- Scenario (b): No drift ---');
     setSetting('drop_webhooks', 'false');
-    process.env.PUBLIC_BASE_URL =
-      originalPublicBaseUrl || 'https://replica-tapeless-curliness.ngrok-free.dev';
+    if (originalPublicBaseUrl) {
+      process.env.PUBLIC_BASE_URL = originalPublicBaseUrl;
+    }
 
     const runB = await runDoctorAgent({
       orderId: NO_DRIFT_ORDER_ID,
@@ -174,7 +176,7 @@ async function main() {
     // =========================================================================
     await new Promise((r) => setTimeout(r, 15_000));
     console.log('\n--- Scenario (c): Webhook URL mismatch ---');
-    process.env.PUBLIC_BASE_URL = 'https://wrong-tunnel-url.ngrok-free.dev';
+    process.env.PUBLIC_BASE_URL = 'https://mismatch-webhook-host.example.com';
 
     const runC = await runDoctorAgent({
       orderId: NO_DRIFT_ORDER_ID,

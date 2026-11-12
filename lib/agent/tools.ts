@@ -6,6 +6,7 @@ import {
 import { checkOrderDrift, type DriftItem } from '@/lib/drift';
 import type { GeminiFunctionDeclaration } from '@/lib/gemini';
 import { checkHealPreconditions, type HealPreconditionsResult } from '@/lib/heal';
+import { getPayPalAccessToken } from '@/lib/paypal';
 
 const PAYPAL_SANDBOX_BASE_URL = 'https://api-m.sandbox.paypal.com';
 
@@ -76,36 +77,6 @@ type PayPalWebhookRegistrationItem = {
 type PayPalWebhooksListResponse = {
   webhooks?: PayPalWebhookRegistrationItem[];
 };
-
-async function getPayPalAccessToken(): Promise<string> {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const clientSecret = process.env.PAYPAL_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Missing PayPal credentials (PAYPAL_CLIENT_ID / PAYPAL_SECRET)');
-  }
-
-  const response = await fetch(`${PAYPAL_SANDBOX_BASE_URL}/v1/oauth2/token`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials',
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(`PayPal token request failed with status ${response.status}`);
-  }
-
-  const data = (await response.json()) as { access_token?: string };
-  if (!data.access_token) {
-    throw new Error('PayPal token response missing access_token');
-  }
-
-  return data.access_token;
-}
 
 export async function get_drift(): Promise<{
   drift_count: number;

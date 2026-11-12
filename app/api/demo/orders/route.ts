@@ -1,8 +1,8 @@
 import { insertLocalOrder } from '@/lib/db';
+import { getPayPalAccessToken } from '@/lib/paypal';
+import { verifyDemoToken } from '@/lib/protection';
 
 const PAYPAL_SANDBOX_BASE_URL = 'https://api-m.sandbox.paypal.com';
-const NGROK_RETURN_URL = 'https://replica-tapeless-curliness.ngrok-free.dev/return';
-const NGROK_CANCEL_URL = 'https://replica-tapeless-curliness.ngrok-free.dev/cancel';
 
 type PayPalOrderLink = {
   href: string;
@@ -16,34 +16,12 @@ type PayPalCreateOrderResponse = {
   links?: PayPalOrderLink[];
 };
 
-async function getPayPalAccessToken(): Promise<string> {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const clientSecret = process.env.PAYPAL_SECRET;
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Missing PayPal credentials');
+function resolvePublicBaseUrl(request: Request): string {
+  const configured = (process.env.PUBLIC_BASE_URL ?? '').trim().replace(/\/+$/, '');
+  if (configured) {
+    return configured;
   }
-
-  const response = await fetch(`${PAYPAL_SANDBOX_BASE_URL}/v1/oauth2/token`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials',
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(`PayPal token request failed with status ${response.status}`);
-  }
-
-  const data = (await response.json()) as { access_token?: string };
-  if (!data.access_token) {
-    throw new Error('PayPal token response missing access_token');
-  }
-
-  return data.access_token;
+  return new URL(request.url).origin.replace(/\/+$/, '');
 }
 
 function normalizeAmount(rawAmount: unknown): string {
@@ -58,6 +36,9 @@ function normalizeAmount(rawAmount: unknown): string {
 }
 
 export async function POST(request: Request) {
+  const denied = verifyDemoToken(request);
+  if (denied) return denied;
+
   let rawAmount: unknown;
   try {
     const text = await request.text();
@@ -80,6 +61,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const baseUrl = resolvePublicBaseUrl(request);
     const accessToken = await getPayPalAccessToken();
     const response = await fetch(`${PAYPAL_SANDBOX_BASE_URL}/v2/checkout/orders`, {
       method: 'POST',
@@ -93,8 +75,8 @@ export async function POST(request: Request) {
         payment_source: {
           paypal: {
             experience_context: {
-              return_url: NGROK_RETURN_URL,
-              cancel_url: NGROK_CANCEL_URL,
+              return_url: `${baseUrl}/return`,
+              cancel_url: `${baseUrl}/cancel`,
               user_action: 'PAY_NOW',
             },
           },

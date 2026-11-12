@@ -6,39 +6,73 @@ const BASE_URL = 'https://api-m.sandbox.paypal.com';
 const MAX_ATTEMPTS = 4;
 
 export class PayPalApiError extends Error {
+  readonly status: number;
+  readonly path: string;
+
   constructor(
-    readonly status: number,
-    readonly path: string,
+    status: number,
+    path: string,
     body: string,
   ) {
     super(`PayPal ${status} on ${path}: ${body.slice(0, 300)}`);
     this.name = 'PayPalApiError';
+    this.status = status;
+    this.path = path;
   }
 }
 
 let cachedToken: { value: string; expiresAt: number } | undefined;
+let inflightTokenPromise: Promise<string> | undefined;
+
+export async function getPayPalAccessToken(): Promise<string> {
+  if (cachedToken && Date.now() < cachedToken.expiresAt) return cachedToken.value;
+  if (inflightTokenPromise) return inflightTokenPromise;
+
+  inflightTokenPromise = (async () => {
+    try {
+      const { PAYPAL_CLIENT_ID: id, PAYPAL_SECRET: secret } = process.env;
+      if (!id || !secret) {
+        throw new Error('Missing PayPal credentials (PAYPAL_CLIENT_ID / PAYPAL_SECRET)');
+      }
+
+      const res = await fetch(`${BASE_URL}/v1/oauth2/token`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString('base64')}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'grant_type=client_credentials',
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new PayPalApiError(res.status, '/v1/oauth2/token', await res.text());
+
+      const data = (await res.json()) as { access_token?: string; expires_in?: number };
+      if (!data.access_token) {
+        throw new Error('PayPal token response missing access_token');
+      }
+      const ttlSeconds = Math.max(60, (data.expires_in ?? 3600) - 60);
+      // Refresh a minute early so an in-flight request never carries an expired token.
+      cachedToken = { value: data.access_token, expiresAt: Date.now() + ttlSeconds * 1000 };
+      return data.access_token;
+    } finally {
+      inflightTokenPromise = undefined;
+    }
+  })();
+
+  return inflightTokenPromise;
+}
+
+export async function prefetchPayPalAccessToken(): Promise<void> {
+  if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_SECRET) return;
+  try {
+    await getPayPalAccessToken();
+  } catch {
+    // Non-fatal on boot; individual calls will retry when credentials/network are ready.
+  }
+}
 
 async function accessToken(): Promise<string> {
-  if (cachedToken && Date.now() < cachedToken.expiresAt) return cachedToken.value;
-
-  const { PAYPAL_CLIENT_ID: id, PAYPAL_SECRET: secret } = process.env;
-  if (!id || !secret) throw new Error('PAYPAL_CLIENT_ID and PAYPAL_SECRET must be set (see .env.local)');
-
-  const res = await fetch(`${BASE_URL}/v1/oauth2/token`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString('base64')}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials',
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new PayPalApiError(res.status, '/v1/oauth2/token', await res.text());
-
-  const { access_token, expires_in } = (await res.json()) as { access_token: string; expires_in: number };
-  // Refresh a minute early so an in-flight request never carries an expired token.
-  cachedToken = { value: access_token, expiresAt: Date.now() + (expires_in - 60) * 1000 };
-  return access_token;
+  return getPayPalAccessToken();
 }
 
 async function get<T>(path: string): Promise<T> {
