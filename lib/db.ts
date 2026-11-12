@@ -51,7 +51,51 @@ export type AgentRunRow = {
   created_at: string;
 };
 
-const DB_PATH = path.resolve(process.cwd(), 'data', 'tether.db');
+export type SeedOrderItem = {
+  order_id: string;
+  amount: string;
+  currency: string;
+  created_at: string;
+};
+
+function resolveDbPath(): string {
+  const configured = process.env.DATABASE_PATH?.trim();
+  if (!configured) {
+    return path.resolve(process.cwd(), 'data', 'tether.db');
+  }
+  return path.isAbsolute(configured)
+    ? configured
+    : path.resolve(/*turbopackIgnore: true*/ process.cwd(), configured);
+}
+
+const SEED_PATH = path.resolve(process.cwd(), 'seed', 'demo-seed.json');
+
+export function readDemoSeedOrders(): SeedOrderItem[] {
+  try {
+    if (!fs.existsSync(SEED_PATH)) return [];
+    const raw = fs.readFileSync(SEED_PATH, 'utf8');
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(
+        (item): item is SeedOrderItem =>
+          Boolean(item) &&
+          typeof item === 'object' &&
+          typeof (item as SeedOrderItem).order_id === 'string' &&
+          typeof (item as SeedOrderItem).amount === 'string' &&
+          typeof (item as SeedOrderItem).currency === 'string' &&
+          typeof (item as SeedOrderItem).created_at === 'string',
+      )
+      .map((item) => ({
+        order_id: item.order_id.trim(),
+        amount: item.amount.trim(),
+        currency: item.currency.trim() || 'USD',
+        created_at: item.created_at.trim(),
+      }));
+  } catch {
+    return [];
+  }
+}
 
 function ensureSchema(db: Database.Database): void {
   db.exec(`
@@ -104,22 +148,91 @@ function ensureSchema(db: Database.Database): void {
   `);
 }
 
+function seedIfEmpty(db: Database.Database): void {
+  const row = db.prepare('SELECT COUNT(*) AS cnt FROM local_orders').get() as
+    | { cnt: number }
+    | undefined;
+  if ((row?.cnt ?? 0) > 0) {
+    return;
+  }
+
+  const seedOrders = readDemoSeedOrders();
+  if (seedOrders.length === 0) {
+    return;
+  }
+
+  const insertStmt = db.prepare(`
+    INSERT OR IGNORE INTO local_orders (
+      order_id,
+      amount,
+      currency,
+      local_status,
+      created_at,
+      updated_at
+    ) VALUES (
+      @order_id,
+      @amount,
+      @currency,
+      'PAID',
+      @created_at,
+      @updated_at
+    )
+  `);
+
+  const runSeed = db.transaction((items: SeedOrderItem[]) => {
+    for (const item of items) {
+      insertStmt.run({
+        order_id: item.order_id,
+        amount: item.amount,
+        currency: item.currency,
+        created_at: item.created_at,
+        updated_at: item.created_at,
+      });
+    }
+  });
+
+  runSeed(seedOrders);
+}
+
 let dbInstance: Database.Database | undefined;
+let dbInstancePath: string | undefined;
 
 export function getDb(): Database.Database {
-  if (dbInstance) {
+  const targetPath = resolveDbPath();
+  if (
+    dbInstance &&
+    dbInstancePath === targetPath &&
+    fs.existsSync(/*turbopackIgnore: true*/ targetPath)
+  ) {
     ensureSchema(dbInstance);
+    seedIfEmpty(dbInstance);
     return dbInstance;
   }
 
-  fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-  const db = new Database(DB_PATH);
+  if (dbInstance) {
+    try {
+      dbInstance.close();
+    } catch {
+      // Ignore close errors when switching/recreating DB file
+    }
+    dbInstance = undefined;
+    dbInstancePath = undefined;
+  }
+
+  fs.mkdirSync(/*turbopackIgnore: true*/ path.dirname(targetPath), { recursive: true });
+  const db = new Database(targetPath);
   db.pragma('journal_mode = WAL');
 
   ensureSchema(db);
+  seedIfEmpty(db);
 
   dbInstance = db;
+  dbInstancePath = targetPath;
   return db;
+}
+
+export function initDatabaseOnBoot(): void {
+  getDb();
 }
 
 export function insertWebhookEvent(event: WebhookEventRow): { inserted: boolean } {
@@ -379,6 +492,29 @@ export function getRecentHealLogs(limit = 50): HealLogRow[] {
 
 export function getLastResendAttemptForEvent(eventId: string): HealLogRow | null {
   const db = getDb();
+  const demoResetAt = getSetting('demo_reset_at', '').trim();
+  if (demoResetAt) {
+    const stmt = db.prepare(`
+      SELECT
+        id,
+        order_id,
+        event_id,
+        action,
+        result,
+        reason,
+        started_at,
+        finished_at
+      FROM heal_log
+      WHERE event_id = @eventId
+        AND action = 'RESEND_WEBHOOK'
+        AND started_at >= @demoResetAt
+      ORDER BY id DESC
+      LIMIT 1
+    `);
+    const row = stmt.get({ eventId, demoResetAt }) as HealLogRow | undefined;
+    return row ?? null;
+  }
+
   const stmt = db.prepare(`
     SELECT
       id,
@@ -480,6 +616,212 @@ export function getRecentAgentRuns(limit = 50): AgentRunRow[] {
 
   return stmt.all(limit) as AgentRunRow[];
 }
+
+export function countAgentRunsSince(isoTimestamp: string): number {
+  const db = getDb();
+  const row = db
+    .prepare('SELECT COUNT(*) AS cnt FROM agent_runs WHERE created_at >= ?')
+    .get(isoTimestamp) as { cnt: number } | undefined;
+  return row?.cnt ?? 0;
+}
+
+export function loadDriftingDemoOrder(preferredOrderId?: string): {
+  order: LocalOrderRow;
+  demo_reset_at: string;
+} {
+  const db = getDb();
+  const seedOrders = readDemoSeedOrders();
+  const fallbackOrder: SeedOrderItem = seedOrders[0] ?? {
+    order_id: '9S418248XP100792M',
+    amount: '450.00',
+    currency: 'USD',
+    created_at: '2026-11-11T19:16:22.982Z',
+  };
+
+  let targetSeed: SeedOrderItem | undefined;
+  if (preferredOrderId && preferredOrderId.trim() !== '') {
+    const trimmed = preferredOrderId.trim();
+    targetSeed = seedOrders.find((s) => s.order_id === trimmed);
+    if (!targetSeed) {
+      const existing = getLocalOrder(trimmed);
+      if (existing) {
+        targetSeed = {
+          order_id: existing.order_id,
+          amount: existing.amount,
+          currency: existing.currency,
+          created_at: existing.created_at,
+        };
+      }
+    }
+  }
+
+  if (!targetSeed) {
+    // Pick the first seeded order that is currently PAID locally, or fallback to the first seed order
+    for (const candidate of seedOrders) {
+      const existing = getLocalOrder(candidate.order_id);
+      if (!existing || existing.local_status === 'PAID') {
+        targetSeed = candidate;
+        break;
+      }
+    }
+  }
+
+  const chosen = targetSeed ?? fallbackOrder;
+  const now = new Date().toISOString();
+
+  const tx = db.transaction(() => {
+    for (const item of seedOrders) {
+      db.prepare(`
+        INSERT OR IGNORE INTO local_orders (
+          order_id,
+          amount,
+          currency,
+          local_status,
+          created_at,
+          updated_at
+        ) VALUES (
+          @order_id,
+          @amount,
+          @currency,
+          'PAID',
+          @created_at,
+          @updated_at
+        )
+      `).run({
+        order_id: item.order_id,
+        amount: item.amount,
+        currency: item.currency,
+        created_at: item.created_at,
+        updated_at: item.created_at,
+      });
+    }
+
+    db.prepare(`
+      INSERT INTO local_orders (
+        order_id,
+        amount,
+        currency,
+        local_status,
+        created_at,
+        updated_at
+      ) VALUES (
+        @order_id,
+        @amount,
+        @currency,
+        'CREATED',
+        @created_at,
+        @updated_at
+      )
+      ON CONFLICT(order_id) DO UPDATE SET
+        local_status = 'CREATED',
+        updated_at = excluded.updated_at
+    `).run({
+      order_id: chosen.order_id,
+      amount: chosen.amount,
+      currency: chosen.currency,
+      created_at: chosen.created_at,
+      updated_at: now,
+    });
+
+    db.prepare(`
+      DELETE FROM webhook_events
+      WHERE order_id = @order_id
+        AND event_type = 'PAYMENT.CAPTURE.COMPLETED'
+    `).run({ order_id: chosen.order_id });
+
+    db.prepare(`
+      INSERT INTO settings (key, value)
+      VALUES ('drop_webhooks', 'false')
+      ON CONFLICT(key) DO UPDATE SET value = 'false'
+    `).run();
+
+    db.prepare(`
+      INSERT INTO settings (key, value)
+      VALUES ('demo_reset_at', @now)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `).run({ now });
+  });
+
+  tx();
+
+  const updated = getLocalOrder(chosen.order_id) ?? {
+    order_id: chosen.order_id,
+    amount: chosen.amount,
+    currency: chosen.currency,
+    local_status: 'CREATED',
+    created_at: chosen.created_at,
+    updated_at: now,
+  };
+
+  return {
+    order: updated,
+    demo_reset_at: now,
+  };
+}
+
+export function resetDemoDatabase(): {
+  seeded_count: number;
+  demo_reset_at: string;
+} {
+  const db = getDb();
+  const seedOrders = readDemoSeedOrders();
+  const now = new Date().toISOString();
+
+  const tx = db.transaction(() => {
+    db.exec(`
+      DELETE FROM webhook_events;
+      DELETE FROM heal_log;
+      DELETE FROM agent_runs;
+      DELETE FROM local_orders;
+    `);
+
+    for (const item of seedOrders) {
+      db.prepare(`
+        INSERT INTO local_orders (
+          order_id,
+          amount,
+          currency,
+          local_status,
+          created_at,
+          updated_at
+        ) VALUES (
+          @order_id,
+          @amount,
+          @currency,
+          'PAID',
+          @created_at,
+          @updated_at
+        )
+      `).run({
+        order_id: item.order_id,
+        amount: item.amount,
+        currency: item.currency,
+        created_at: item.created_at,
+        updated_at: item.created_at,
+      });
+    }
+
+    db.prepare(`
+      INSERT INTO settings (key, value)
+      VALUES ('drop_webhooks', 'false')
+      ON CONFLICT(key) DO UPDATE SET value = 'false'
+    `).run();
+
+    db.prepare(`
+      INSERT INTO settings (key, value)
+      VALUES ('demo_reset_at', @now)
+      ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    `).run({ now });
+  });
+
+  tx();
+
+  return {
+    seeded_count: seedOrders.length,
+    demo_reset_at: now,
+  };
+}
+
 
 
 
