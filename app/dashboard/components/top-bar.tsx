@@ -262,8 +262,45 @@ export function TopBar({
           </span>
         </div>
 
-        {/* Center: Floating frosted glass pill navbar (Health & Incidents only) + clickable Doctor status pill */}
+        {/* Center: clickable Doctor status pill on the left of the floating frosted glass pill navbar */}
         <div className="order-3 flex w-full flex-wrap items-center justify-center gap-2.5 md:order-2 md:w-auto md:justify-self-center">
+          {onToggleDoctorDrawer && (
+            <button
+              ref={doctorTriggerRef}
+              type="button"
+              data-testid="doctor-status-toggle"
+              aria-expanded={doctorDrawerOpen}
+              aria-controls="doctor-drawer-aside"
+              aria-haspopup="dialog"
+              title={doctorDrawerOpen ? 'Hide Doctor panel' : 'Open Doctor panel'}
+              aria-label={
+                hasDrift
+                  ? `Toggle Doctor panel (${openDriftCount} open drift)`
+                  : 'Toggle Doctor panel (In sync)'
+              }
+              onClick={onToggleDoctorDrawer}
+              className={`tether-glass-pill pointer-events-auto inline-flex h-[38px] shrink-0 cursor-pointer items-center gap-2 rounded-full px-3.5 text-xs font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                hasDrift
+                  ? doctorDrawerOpen
+                    ? 'border-drift bg-drift-soft text-drift'
+                    : 'border-drift/55 bg-drift-soft/70 text-drift hover:border-drift'
+                  : doctorDrawerOpen
+                    ? 'border-sync/70 bg-sync-soft text-sync'
+                    : 'text-sync hover:border-sync/55 hover:bg-sync-soft/60'
+              }`}
+            >
+              <span
+                className={`size-2 shrink-0 rounded-full ${
+                  hasDrift ? 'bg-drift tether-drift-glow' : 'bg-sync'
+                }`}
+                aria-hidden
+              />
+              <span className="whitespace-nowrap">
+                {hasDrift ? `${openDriftCount} open` : 'In sync'}
+              </span>
+            </button>
+          )}
+
           <nav
             aria-label="Report navigation"
             className="tether-glass-nav pointer-events-auto inline-flex max-w-full items-center rounded-full px-1.5 py-1"
@@ -310,43 +347,6 @@ export function TopBar({
               })}
             </div>
           </nav>
-
-          {onToggleDoctorDrawer && (
-            <button
-              ref={doctorTriggerRef}
-              type="button"
-              data-testid="doctor-status-toggle"
-              aria-expanded={doctorDrawerOpen}
-              aria-controls="doctor-drawer-aside"
-              aria-haspopup="dialog"
-              title={doctorDrawerOpen ? 'Hide Doctor panel' : 'Open Doctor panel'}
-              aria-label={
-                hasDrift
-                  ? `Toggle Doctor panel (${openDriftCount} open drift)`
-                  : 'Toggle Doctor panel (In sync)'
-              }
-              onClick={onToggleDoctorDrawer}
-              className={`tether-glass-pill pointer-events-auto inline-flex h-[38px] shrink-0 cursor-pointer items-center gap-2 rounded-full px-3.5 text-xs font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                hasDrift
-                  ? doctorDrawerOpen
-                    ? 'border-drift bg-drift-soft text-drift'
-                    : 'border-drift/55 bg-drift-soft/70 text-drift hover:border-drift'
-                  : doctorDrawerOpen
-                    ? 'border-sync/70 bg-sync-soft text-sync'
-                    : 'text-sync hover:border-sync/55 hover:bg-sync-soft/60'
-              }`}
-            >
-              <span
-                className={`size-2 shrink-0 rounded-full ${
-                  hasDrift ? 'bg-drift tether-drift-glow' : 'bg-sync'
-                }`}
-                aria-hidden
-              />
-              <span className="whitespace-nowrap">
-                {hasDrift ? `${openDriftCount} open` : 'In sync'}
-              </span>
-            </button>
-          )}
         </div>
 
         {/* Right side: standalone DEMO pill icon button, standalone Settings pill icon button */}

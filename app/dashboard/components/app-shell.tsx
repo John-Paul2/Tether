@@ -64,7 +64,7 @@ export function AppShell({
     doctorOpenRef.current = doctorDrawerOpen;
   }, [doctorDrawerOpen]);
 
-  const [dockMode, setDockMode] = useState<DoctorDockMode>('right');
+  const [dockMode, setDockMode] = useState<DoctorDockMode>('left');
   const [dockWidth, setDockWidth] = useState<number>(DEFAULT_DOCK_WIDTH);
   const [floatRect, setFloatRect] = useState<Rect>({
     x: 24,
@@ -378,11 +378,11 @@ export function AppShell({
           )}
         </AnimatePresence>
 
-        {/* Single persistent Doctor tile slot: dynamically fits docked-right / docked-left OR floats freely */}
+        {/* Single persistent Doctor tile slot: dynamically fits docked-left / docked-right OR floats freely */}
         <AnimatePresence
           onExitComplete={() => {
             if (!doctorOpenRef.current) {
-              setDockMode('right');
+              setDockMode('left');
               setDragEdgePreview(null);
             }
           }}
@@ -409,7 +409,7 @@ export function AppShell({
               }
               className={
                 !isDockCapable
-                  ? 'fixed bottom-3 right-3 top-[82px] z-50 flex w-[min(396px,calc(100vw-24px))] flex-col'
+                  ? 'fixed bottom-3 left-3 top-[82px] z-50 flex w-[min(396px,calc(100vw-24px))] flex-col'
                   : isFloatingDesktop
                     ? 'fixed z-40 flex flex-col'
                     : `relative flex h-full min-h-0 shrink-0 flex-col pt-[82px] pb-4 ${
@@ -429,13 +429,13 @@ export function AppShell({
                 initial={
                   isFloatingDesktop
                     ? { opacity: 0, scale: 0.97 }
-                    : { opacity: 0, x: dockMode === 'left' ? -18 : 18 }
+                    : { opacity: 0, x: !isDockCapable || dockMode === 'left' ? -18 : 18 }
                 }
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={
                   isFloatingDesktop
                     ? { opacity: 0, scale: 0.97 }
-                    : { opacity: 0, x: dockMode === 'left' ? -18 : 18 }
+                    : { opacity: 0, x: !isDockCapable || dockMode === 'left' ? -18 : 18 }
                 }
                 transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
                 className="relative flex h-full min-h-0 w-full flex-col"

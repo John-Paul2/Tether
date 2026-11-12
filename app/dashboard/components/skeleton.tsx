@@ -13,11 +13,11 @@ export function TopBarSkeleton() {
           <Skeleton className="h-5 w-16 rounded-[var(--radius-input)]" />
         </div>
         <div className="order-3 flex w-full flex-wrap items-center justify-center gap-2.5 md:order-2 md:w-auto md:justify-self-center">
+          <Skeleton className="h-9 w-24 rounded-full" />
           <div className="tether-glass-nav inline-flex items-center gap-1 rounded-full px-2 py-1.5">
             <Skeleton className="h-7 w-16 rounded-full" />
             <Skeleton className="h-7 w-20 rounded-full" />
           </div>
-          <Skeleton className="h-9 w-24 rounded-full" />
         </div>
         <div className="order-2 flex items-center gap-2 md:order-3 md:justify-self-end">
           <Skeleton className="h-9 w-20 rounded-full" />
