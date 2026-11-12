@@ -1,9 +1,13 @@
 import { insertHealLog } from '@/lib/db';
 import { healOrderDrift } from '@/lib/heal';
+import { verifyDemoToken } from '@/lib/protection';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  const denied = verifyDemoToken(request);
+  if (denied) return denied;
+
   const startedAt = new Date().toISOString();
   let body: { orderId?: unknown } | undefined;
 

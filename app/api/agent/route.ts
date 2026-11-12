@@ -1,7 +1,10 @@
 import { runDoctorAgent, type AgentTraceStep } from '@/lib/agent/run';
 import { getRecentAgentRuns } from '@/lib/db';
+import { checkAgentRateLimit, recordRealGeminiAgentRun } from '@/lib/protection';
 
 export const dynamic = 'force-dynamic';
+
+const KEEP_ALIVE_INTERVAL_MS = 15_000;
 
 export async function GET() {
   const runs = getRecentAgentRuns(50);
@@ -26,19 +29,51 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invalid JSON request body' }, { status: 400 });
   }
 
+  const { ip, blockedResponse } = checkAgentRateLimit(request);
+  if (blockedResponse) {
+    return blockedResponse;
+  }
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const sendEvent = (event: string, data: unknown) => {
-        const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-        controller.enqueue(encoder.encode(payload));
+      let closed = false;
+      let countedRealGeminiRun = false;
+
+      const enqueueRaw = (chunk: string) => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(chunk));
+        } catch {
+          closed = true;
+        }
       };
 
+      const sendEvent = (event: string, data: unknown) => {
+        enqueueRaw(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      };
+
+      // Flush an initial SSE comment immediately so proxies start streaming right away
+      enqueueRaw(': stream-open\n\n');
+
+      const keepAliveTimer = setInterval(() => {
+        enqueueRaw(': keep-alive\n\n');
+      }, KEEP_ALIVE_INTERVAL_MS);
+
       try {
+        if (process.env.GEMINI_API_KEY?.trim()) {
+          countedRealGeminiRun = true;
+          recordRealGeminiAgentRun(ip);
+        }
+
         const output = await runDoctorAgent({
           orderId,
           onStep: (step: AgentTraceStep) => {
+            if (!countedRealGeminiRun) {
+              countedRealGeminiRun = true;
+              recordRealGeminiAgentRun(ip);
+            }
             sendEvent('step', step);
           },
         });
@@ -55,7 +90,15 @@ export async function POST(request: Request) {
           error: err instanceof Error ? err.message : 'Agent investigation failed',
         });
       } finally {
-        controller.close();
+        clearInterval(keepAliveTimer);
+        if (!closed) {
+          closed = true;
+          try {
+            controller.close();
+          } catch {
+            // Ignore already-closed stream
+          }
+        }
       }
     },
   });
@@ -65,6 +108,7 @@ export async function POST(request: Request) {
     headers: {
       'Content-Type': 'text/event-stream; charset=utf-8',
       'Cache-Control': 'no-cache, no-transform',
+      'X-Accel-Buffering': 'no',
       Connection: 'keep-alive',
     },
   });

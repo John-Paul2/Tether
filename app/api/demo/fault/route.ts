@@ -1,4 +1,5 @@
 import { getSetting, setSetting } from '@/lib/db';
+import { verifyDemoToken } from '@/lib/protection';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = verifyDemoToken(request);
+  if (denied) return denied;
+
   let body: { drop?: unknown } | undefined;
   try {
     body = (await request.json()) as { drop?: unknown };
