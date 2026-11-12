@@ -12,7 +12,7 @@
 [![Render](https://img.shields.io/badge/Hosted_on-Render-46E3B7?style=flat-square&logo=render&logoColor=black)](https://render.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-2EAD4B?style=flat-square)](LICENSE)
 
-[**Live demo**]([LIVE_DEMO_URL]) · [**Demo video**]([VIDEO_URL]) · [**Devpost**]([DEVPOST_URL])
+[**Live demo**](https://tether-z96s.onrender.com) · [**Demo video**]([VIDEO_URL])
 
 </div>
 
@@ -32,7 +32,7 @@ PayPal retries a webhook only when the listener visibly fails the request. If yo
 
 ## Try it in 60 seconds
 
-> **Note:** If the live demo is hosted on Render's free tier, the instance may take up to a minute to wake on the first request.
+> **Note:** Open the [**live demo**](https://tether-z96s.onrender.com). It is hosted on Render's free tier, so the instance may take up to a minute to wake on the first request.
 
 1. **Create a drifting order (or pick an existing one):** Click **DEMO** in the top-right bar, turn **Simulate dropped webhooks** **ON**, click **Create sandbox order**, open **Approve in PayPal sandbox** to sign in as a buyer, click **Capture order**, and then turn **Simulate dropped webhooks** **OFF** so the listener can receive the replay.
 2. **Open the Doctor panel:** Click the red **`N open`** drift pill in the top bar (or select the drifting row in the **Local orders** table) to open the **Doctor panel**.
@@ -180,7 +180,7 @@ All live calls target `https://api-m.sandbox.paypal.com` using plain `fetch`:
 | **AG Studio 3.0 & AG Grid 36.2** | Relational data model (`webhook_events`, `local_orders`, `heal_log`, `agent_runs`, `drift` joined on `order_id`), KPI expressions (`moneyAtRisk`, `verificationRate`, `openDriftCount`, `avgSecondsToFixed`), charts, and interactive grids. |
 | **SQLite (`better-sqlite3`)** | WAL-mode local persistence (`data/tether.db`) for orders, verified webhook receipts, heal audit logs, and agent runs. |
 | **Server-Sent Events (SSE)** | Streams live agent `step`, `result`, and `error` events from `POST /api/agent` to the Doctor panel. |
-| **Render** | Cloud web service hosting for the live demo. |
+| **Render** | Cloud web service hosting for the [live demo](https://tether-z96s.onrender.com). |
 | **Antigravity & Claude** | AI development assistance used during the hackathon. |
 
 ## Run it locally
