@@ -45,54 +45,70 @@ PayPal retries a webhook only when the listener visibly fails the request. If yo
 ### Architecture
 
 ```mermaid
-flowchart LR
-  PP["PayPal Sandbox API"]
-  WH["POST /api/webhook<br/>Signature Verifier"]
-  DB[("SQLite<br/>data/tether.db")]
-  DR["GET /api/drift<br/>lib/drift.ts"]
-  AG["POST /api/agent<br/>Gemini Doctor + 7 Tools"]
-  GD["Guard & Heal<br/>lib/heal.ts (5 checks)"]
-  UI["Next.js Dashboard<br/>AG Studio + Doctor Panel"]
+flowchart TD
+  UI["Tether Dashboard & Doctor Panel"]
+  DR["Drift Check"]
+  AG["Gemini Doctor Agent"]
+  GD["Heal Guard - 5 Checks"]
+  PP["PayPal Sandbox"]
+  WH["Verified Webhook Receiver"]
+  DB[("Local SQLite DB")]
 
-  PP -- "Webhook delivery" --> WH
-  WH -- "Verify signature" --> PP
-  WH -- "Store event & mark PAID" --> DB
-  UI -- "Check drift" --> DR
-  DR -- "Read CREATED orders" --> DB
-  DR -- "GET /v2/checkout/orders/{id}" --> PP
-  UI -- "Investigate (SSE)" --> AG
-  AG -- "Read logs & state" --> DB
-  AG -- "Inspect orders, events, webhooks" --> PP
-  UI -- "Approve fix" --> GD
-  GD -- "POST .../webhooks-events/{id}/resend" --> PP
+  UI -->|1. Detect| DR
+  UI -->|2. Diagnose| AG
+  UI -->|3. Approve Fix| GD
+
+  DR -->|Compare status| PP
+  DR -->|Read orders| DB
+
+  AG -->|Inspect events & orders| PP
+  AG -->|Read logs & state| DB
+
+  GD -->|Request resend| PP
+  PP -->|Deliver webhook| WH
+  WH -->|Verify & mark PAID| DB
+
+  classDef ui fill:#0B1426,stroke:#0070E0,color:#FFFFFF,stroke-width:2px
+  classDef paypal fill:#003087,stroke:#66B2FF,color:#FFFFFF,stroke-width:2px
+  classDef ai fill:#1E3A8A,stroke:#60A5FA,color:#FFFFFF,stroke-width:2px
+  classDef guard fill:#4A3B1C,stroke:#FFD11A,color:#FFFFFF,stroke-width:2px
+  classDef sync fill:#054D28,stroke:#2EAD4B,color:#FFFFFF,stroke-width:2px
+
+  class UI,DR ui
+  class PP paypal
+  class AG ai
+  class GD guard
+  class WH,DB sync
 ```
 
 ### Guarded heal sequence
 
 ```mermaid
 sequenceDiagram
-  autonumber
+  participant U as Operator
+  participant A as Doctor Agent
+  participant G as Heal Guard
   participant P as PayPal Sandbox
-  participant W as POST /api/webhook
-  participant D as SQLite (tether.db)
-  participant A as Doctor Agent (Gemini)
-  participant H as Operator (UI)
-  participant G as Heal Guard (lib/heal.ts)
+  participant D as Webhook & SQLite
 
-  P->>W: PAYMENT.CAPTURE.COMPLETED (drop_webhooks = true)
-  W-->>P: 200 OK (dropped before DB write)
-  Note over P,D: Drift: PayPal is COMPLETED, local_orders is CREATED
-  H->>A: Click "Investigate" (POST /api/agent SSE)
-  A->>P: get_paypal_order, get_paypal_event_log, check_webhook_registration
-  A->>D: get_receipt_log, check_fault_switch, propose_heal
-  A-->>H: Diagnosis JSON + server-recomputed safe_to_heal: true
-  H->>G: Click "Approve fix" (POST /api/agent/approve)
-  G->>P: Re-verify 5 pre-conditions + POST /v1/notifications/webhooks-events/{id}/resend
-  P->>W: Re-deliver PAYMENT.CAPTURE.COMPLETED
-  W->>P: POST /v1/notifications/verify-webhook-signature (SUCCESS)
-  W->>D: Insert webhook_events + UPDATE local_orders SET local_status = 'PAID'
-  G->>D: Poll local_orders (1s interval, up to 30s) & write heal_log
-  G-->>H: healed: true + seconds_to_fixed
+  rect rgb(60, 20, 25)
+    Note over P,D: 1. Drift — PayPal is COMPLETED, SQLite is still CREATED
+  end
+
+  rect rgb(20, 38, 75)
+    U->>A: Click "Investigate"
+    A->>P: Check order, event log & webhook URL
+    A->>D: Check local receipts & 5 pre-conditions
+    A-->>U: Diagnosis + safe_to_heal: true
+  end
+
+  rect rgb(15, 55, 35)
+    U->>G: Click "Approve fix"
+    G->>P: Verify 5 checks & resend webhook
+    P->>D: Re-deliver PAYMENT.CAPTURE.COMPLETED
+    D->>D: Verify signature & mark order PAID
+    G-->>U: Healed + seconds_to_fixed
+  end
 ```
 
 ## Safety by design
