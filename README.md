@@ -206,7 +206,7 @@ Fill in `.env.local`, then start the development server:
 npm run dev
 ```
 
-Open `http://localhost:3000` (which redirects to `/dashboard`). Other scripts in `package.json`: `npm run build`, `npm run start`, and `npm run lint`.
+Open your local server URL (which redirects to `/dashboard`). Other scripts in `package.json`: `npm run build`, `npm run start`, and `npm run lint`.
 
 <details>
 <summary><strong>Environment variables (matches <code>.env.example</code>)</strong></summary>
@@ -216,20 +216,42 @@ Open `http://localhost:3000` (which redirects to `/dashboard`). Other scripts in
 | `PAYPAL_CLIENT_ID` | Yes | PayPal sandbox REST app client ID. |
 | `PAYPAL_SECRET` | Yes | PayPal sandbox REST app secret. |
 | `PAYPAL_WEBHOOK_ID` | Yes | ID of the webhook registered in your PayPal sandbox app (used for signature verification and scoped resends). |
-| `PUBLIC_BASE_URL` | Yes | Publicly reachable base URL for your app (e.g. your ngrok tunnel URL); compared against PayPal's registered webhook URL. |
+| `PUBLIC_BASE_URL` | Yes | Publicly reachable base URL for your app (single source for `/api/webhook`, `/return`, `/cancel`, and `check_webhook_registration`). |
+| `DATABASE_PATH` | No | Path to SQLite database file (defaults to `./data/tether.db` locally; set to `/tmp/tether.db` on Render free plan). |
 | `GEMINI_API_KEY` | Yes | Google Gemini API key for the Doctor Agent. |
 | `GEMINI_MODEL` | No | Primary Gemini model ID (defaults to `gemini-3.6-flash` in `lib/gemini.ts`). |
 | `GEMINI_FALLBACK_MODEL` | No | Fallback Gemini model ID used on timeout or 429/500/503 (defaults to `gemini-3.5-flash`). |
+| `DEMO_TOKEN` | No | Optional shared secret required via `x-demo-token` header on demo/heal routes when set. |
+| `AGENT_DAILY_CAP` | No | Global daily cap on real Gemini diagnostic runs (defaults to `300`). |
 | `AG_STUDIO` | No | Optional AG Studio license key passed to `AgStudioProvider`. |
 
 </details>
 
+### Deploy to Render
+
+This repository includes a [`render.yaml`](render.yaml) Blueprint configured for Render's **Free** web service plan (`runtime: node`, `region: ohio`, no persistent disk, `DATABASE_PATH=/tmp/tether.db`, `healthCheckPath: /api/health`). On every startup or cold boot, [`instrumentation.ts`](instrumentation.ts) and [`lib/db.ts`](lib/db.ts) initialize the schema, seed the 3 verified `PAID` sandbox orders from [`seed/demo-seed.json`](seed/demo-seed.json) if `local_orders` is empty, and pre-fetch the PayPal OAuth access token.
+
+Set these environment variables in the Render Dashboard (**Environment** tab):
+
+- `PAYPAL_CLIENT_ID` — PayPal sandbox REST client ID (`sync: false`)
+- `PAYPAL_SECRET` — PayPal sandbox REST secret (`sync: false`)
+- `PAYPAL_WEBHOOK_ID` — Webhook ID registered in PayPal for `<PUBLIC_BASE_URL>/api/webhook` (`sync: false`)
+- `PUBLIC_BASE_URL` — Your Render service URL, e.g. `https://your-service.onrender.com` (`sync: false`)
+- `GEMINI_API_KEY` — Google Gemini API key (`sync: false`)
+- `GEMINI_MODEL` — Optional primary Gemini model (`sync: false`)
+- `GEMINI_FALLBACK_MODEL` — Optional fallback Gemini model (`sync: false`)
+- `DEMO_TOKEN` — Optional token protecting `/api/demo/*` and heal routes via `x-demo-token` (`sync: false`)
+- `AG_STUDIO` — Optional AG Studio license key (`sync: false`)
+- `DATABASE_PATH` — `/tmp/tether.db` (set in `render.yaml`)
+- `AGENT_DAILY_CAP` — `300` (set in `render.yaml`)
+
 ### Expose the webhook and create a drifting order
 
-1. Start a tunnel pointing at port `3000`, for example: `ngrok http 3000`.
-2. Set `PUBLIC_BASE_URL` in `.env.local` to your tunnel's HTTPS URL (for example, `https://your-subdomain.ngrok-free.dev`).
-3. In the [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/applications/sandbox), add a webhook to your sandbox app with URL `<PUBLIC_BASE_URL>/api/webhook`, subscribe to `PAYMENT.CAPTURE.COMPLETED` (and optionally `CHECKOUT.ORDER.APPROVED`), and copy the resulting **Webhook ID** into `PAYPAL_WEBHOOK_ID` in `.env.local`.
-4. In the Tether UI, open **DEMO**, enable **Simulate dropped webhooks**, click **Create sandbox order**, approve the order in the PayPal sandbox buyer window, click **Capture order**, and then turn **Simulate dropped webhooks** **OFF**. You now have a live drifting order ready to investigate and heal.
+1. In the **DEMO** menu in the top bar, click **Load a drifting order** to immediately stage a pre-captured sandbox order as `CREATED` locally without needing a PayPal buyer login, or click **Reset demo** to restore the seeded baseline.
+2. For the full create/approve/capture flow, open **Advanced demo** inside **DEMO**:
+   - Set `PUBLIC_BASE_URL` to your public HTTPS URL.
+   - In the [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/applications/sandbox), register `<PUBLIC_BASE_URL>/api/webhook` subscribed to `PAYMENT.CAPTURE.COMPLETED` and set `PAYPAL_WEBHOOK_ID`.
+   - Enable **Simulate dropped webhooks**, click **Create sandbox order**, approve the order in the PayPal sandbox buyer window, click **Capture order**, and then turn **Simulate dropped webhooks** **OFF**.
 
 ## Tested scenarios
 
@@ -239,7 +261,7 @@ Open `http://localhost:3000` (which redirects to `/dashboard`). Other scripts in
 |---|---|---|---|
 | **(a) Dropped webhook** | Order `2JJ686322T369532X` (`COMPLETED` in PayPal) set to `CREATED` locally with its local `PAYMENT.CAPTURE.COMPLETED` row removed and `drop_webhooks = false`. | `WEBHOOK_DROPPED_BY_LISTENER` | `true` |
 | **(b) No drift** | Order `8N99210137712282F` already `PAID` locally and `COMPLETED` in PayPal with `drop_webhooks = false`. | `NO_DRIFT` | `false` |
-| **(c) Webhook URL mismatch** | `PUBLIC_BASE_URL` temporarily set to `https://wrong-tunnel-url.ngrok-free.dev` so `check_webhook_registration` detects a mismatch. | `WEBHOOK_URL_OR_EVENT_MISMATCH` | `false` |
+| **(c) Webhook URL mismatch** | `PUBLIC_BASE_URL` temporarily set to `https://mismatch-webhook-host.example.com` so `check_webhook_registration` detects a mismatch. | `WEBHOOK_URL_OR_EVENT_MISMATCH` | `false` |
 
 Run the test suite with:
 
@@ -250,6 +272,7 @@ node --experimental-strip-types scripts/test-agent.ts
 ## Project structure
 
 ```text
+app/api/health/route.ts                   # Lightweight GET /api/health returning { ok: true }
 app/api/webhook/route.ts                  # Receives PayPal webhooks, verifies signatures, updates PAID status
 app/api/drift/route.ts                    # GET endpoint returning live PayPal vs. SQLite drift items
 app/api/events/route.ts                   # GET endpoint returning the latest 100 local webhook_events
@@ -257,17 +280,25 @@ app/api/heal/route.ts                     # POST endpoint running guarded webhoo
 app/api/heal/log/route.ts                 # GET endpoint returning the latest 50 heal_log audit rows
 app/api/agent/route.ts                    # GET recent agent runs; POST streams live Doctor Agent SSE steps
 app/api/agent/approve/route.ts            # POST human-approved heal endpoint used by the Doctor panel
+app/api/demo/load-drift/route.ts          # POST resets a pre-captured order to CREATED locally for 1-click judge demo
+app/api/demo/reset/route.ts               # POST resets shared SQLite state back to the 3 seeded PAID orders
 app/api/demo/fault/route.ts               # GET/POST toggle for settings.drop_webhooks fault injection
 app/api/demo/orders/route.ts              # POST creates a PayPal sandbox order and inserts local CREATED row
 app/api/demo/orders/[id]/capture/route.ts # POST captures a PayPal sandbox order without updating local SQLite
+app/return/page.tsx                       # PayPal buyer approval return page with link back to /dashboard
+app/cancel/page.tsx                       # PayPal buyer cancel page with link back to /dashboard
 app/dashboard/                            # AG Studio dashboard, TopBar, MoneyBox, ReconciliationStrip, DoctorPanel
-lib/db.ts                                 # SQLite schema and queries (webhook_events, local_orders, settings, heal_log, agent_runs)
+instrumentation.ts                        # Boot hook initializing SQLite schema, seed, and PayPal OAuth token cache
+lib/db.ts                                 # SQLite schema, seed loader, demo reset/load-drift, and queries
+lib/protection.ts                         # x-demo-token verification, per-IP rate limiting, and AGENT_DAILY_CAP
 lib/drift.ts                              # Read-only drift detector comparing unpaid local orders to PayPal
 lib/heal.ts                               # Five pre-condition checks, PayPal webhook resend, and verification polling
 lib/gemini.ts                             # Gemini REST client with function calling, 30s timeout, and fallback retry
 lib/agent/tools.ts                        # Seven diagnostic tool declarations and implementations
 lib/agent/run.ts                          # Doctor Agent loop, evidence validator, and server-side safe_to_heal override
 lib/tether-data.ts                        # Server snapshot builder flattening SQLite and live drift for AG Studio
+seed/demo-seed.json                       # Non-secret seed of 3 real PAID PayPal sandbox orders
+render.yaml                               # Render Free plan Blueprint configuration
 scripts/test-agent.ts                     # End-to-end verification script for Scenarios (a), (b), and (c)
 DESIGN.md                                 # Design system tokens, typography, and component rules
 ```
@@ -277,12 +308,10 @@ DESIGN.md                                 # Design system tokens, typography, an
 **Current limitations:**
 - **Sandbox only:** Hardcoded to `https://api-m.sandbox.paypal.com`.
 - **Human-in-the-loop required:** Every heal requires an operator to click **Approve fix** (or call `/api/heal` / `/api/agent/approve`).
-- **Ephemeral SQLite on Render free tier:** Local SQLite state in `data/tether.db` resets when a free Render instance spins down or redeploys.
-- **Order-creation return URLs:** `/api/demo/orders` uses static sandbox return/cancel URLs for buyer approval redirect.
+- **Ephemeral SQLite on Render free tier:** Local SQLite state in `DATABASE_PATH` resets when a free Render instance spins down or redeploys, and automatically re-seeds from `seed/demo-seed.json` on boot.
 
 **Roadmap (not built yet):**
 - **Autopilot within policy:** Optional auto-heal when all 5 pre-conditions pass and confidence is `high`.
-- **One-click "Load a drifting order" button:** Pre-seeded demo button in the DEMO popover.
 - **WooCommerce and Shopify adapters:** Plug-in connectors for merchant order tables beyond local SQLite.
 - **Slack and email alerts:** Push notifications when `checkOrderDrift` detects money at risk.
 - **Daily reconciliation sweep & more event types:** Scheduled background checks and support for refunds, disputes, and subscriptions.

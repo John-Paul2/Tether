@@ -2,8 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ExternalLink, FlaskConical, X } from 'lucide-react';
+import { ChevronDown, ExternalLink, FlaskConical, RotateCcw, Sparkles, X } from 'lucide-react';
 import type { TetherLocalOrderRow } from '@/lib/tether-data';
+import {
+  getClientDemoToken,
+  setClientDemoToken,
+  withDemoTokenHeaders,
+} from './demo-token';
 import { Badge, Button } from './ui/ui';
 
 type CreatedOrderInfo = {
@@ -57,11 +62,16 @@ export function DemoControlsPanel({
   const containerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const faultSwitchRef = useRef<HTMLButtonElement>(null);
+  const loadDriftButtonRef = useRef<HTMLButtonElement>(null);
   const restoreFocusRef = useRef(false);
   const prevOpenRef = useRef(open);
 
+  const [loadingDriftOrder, setLoadingDriftOrder] = useState(false);
+  const [resettingDemo, setResettingDemo] = useState(false);
   const [togglingFault, setTogglingFault] = useState(false);
+
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [demoToken, setDemoTokenState] = useState(() => getClientDemoToken());
 
   const [amount, setAmount] = useState('450.00');
   const [creatingOrder, setCreatingOrder] = useState(false);
@@ -90,8 +100,9 @@ export function DemoControlsPanel({
 
   useEffect(() => {
     if (!open) return;
+    setDemoTokenState(getClientDemoToken());
     const raf = requestAnimationFrame(() => {
-      faultSwitchRef.current?.focus();
+      loadDriftButtonRef.current?.focus();
     });
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
@@ -116,6 +127,95 @@ export function DemoControlsPanel({
     };
   }, [open, setOpen]);
 
+  const handleTokenChange = (value: string) => {
+    setDemoTokenState(value);
+    setClientDemoToken(value);
+  };
+
+  const handleLoadDriftingOrder = async () => {
+    setLoadingDriftOrder(true);
+    setStatusMessage(null);
+    setSlowNotice(null);
+    try {
+      const res = await fetch('/api/demo/load-drift', {
+        method: 'POST',
+        headers: withDemoTokenHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({}),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        order_id?: string;
+        amount?: string;
+        currency?: string;
+        error?: string;
+      };
+      if (res.status === 401) {
+        setAdvancedOpen(true);
+        throw new Error(data.error ?? 'Demo token required');
+      }
+      if (!res.ok || !data.order_id) {
+        throw new Error(data.error ?? `Failed with status ${res.status}`);
+      }
+      onFaultChanged(false);
+      onOrderMutated();
+      setStatusMessage({
+        tone: 'warning',
+        text: `Loaded drifting order ${data.order_id} ($${data.amount ?? '450.00'} ${data.currency ?? 'USD'}). PayPal status is COMPLETED while local SQLite is CREATED — open the Doctor panel and click Investigate!`,
+      });
+    } catch (err) {
+      setStatusMessage({
+        tone: 'negative',
+        text:
+          err instanceof Error
+            ? err.message
+            : 'Could not load drifting order. Try again in a moment.',
+      });
+    } finally {
+      setLoadingDriftOrder(false);
+    }
+  };
+
+  const handleResetDemo = async () => {
+    setResettingDemo(true);
+    setStatusMessage(null);
+    setSlowNotice(null);
+    try {
+      const res = await fetch('/api/demo/reset', {
+        method: 'POST',
+        headers: withDemoTokenHeaders({ 'Content-Type': 'application/json' }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        seeded_count?: number;
+        error?: string;
+      };
+      if (res.status === 401) {
+        setAdvancedOpen(true);
+        throw new Error(data.error ?? 'Demo token required');
+      }
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error ?? `Reset failed with status ${res.status}`);
+      }
+      setCreatedOrder(null);
+      onFaultChanged(false);
+      onOrderMutated();
+      setStatusMessage({
+        tone: 'positive',
+        text: `Demo database reset to clean state (${data.seeded_count ?? 3} synced PAID orders, zero open drift).`,
+      });
+    } catch (err) {
+      setStatusMessage({
+        tone: 'negative',
+        text:
+          err instanceof Error
+            ? err.message
+            : 'Could not reset demo database. Try again.',
+      });
+    } finally {
+      setResettingDemo(false);
+    }
+  };
+
   const handleToggleFault = async () => {
     const nextDrop = !dropWebhooks;
     setTogglingFault(true);
@@ -123,10 +223,14 @@ export function DemoControlsPanel({
     try {
       const res = await fetch('/api/demo/fault', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withDemoTokenHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ drop: nextDrop }),
       });
       const data = (await res.json()) as { drop?: boolean; error?: string };
+      if (res.status === 401) {
+        setAdvancedOpen(true);
+        throw new Error(data.error ?? 'Demo token required');
+      }
       if (!res.ok) {
         throw new Error(data.error ?? 'Failed to toggle webhook fault switch');
       }
@@ -143,7 +247,7 @@ export function DemoControlsPanel({
         tone: 'negative',
         text:
           err instanceof Error
-            ? `${err.message}. Try toggling again.`
+            ? `${err.message}`
             : 'Could not update fault switch. Check server status and try again.',
       });
     } finally {
@@ -165,10 +269,14 @@ export function DemoControlsPanel({
     try {
       const res = await fetch('/api/demo/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withDemoTokenHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ amount }),
       });
       const data = (await res.json()) as CreatedOrderInfo & { error?: string };
+      if (res.status === 401) {
+        setAdvancedOpen(true);
+        throw new Error(data.error ?? 'Demo token required');
+      }
       if (!res.ok || !data.order_id) {
         throw new Error(data.error ?? `PayPal returned status ${res.status}`);
       }
@@ -184,7 +292,7 @@ export function DemoControlsPanel({
         tone: 'negative',
         text:
           err instanceof Error
-            ? `Order creation failed: ${err.message}. Check your PayPal sandbox credentials and try again.`
+            ? `Order creation failed: ${err.message}`
             : 'Order creation timed out or failed. Try again in a moment.',
       });
     } finally {
@@ -217,6 +325,7 @@ export function DemoControlsPanel({
     try {
       const res = await fetch(`/api/demo/orders/${encodeURIComponent(targetId)}/capture`, {
         method: 'POST',
+        headers: withDemoTokenHeaders(),
       });
       const data = (await res.json()) as {
         id?: string;
@@ -226,6 +335,11 @@ export function DemoControlsPanel({
         details?: { issue?: string; description?: string }[];
         error?: string;
       };
+
+      if (res.status === 401) {
+        setAdvancedOpen(true);
+        throw new Error(data.error ?? 'Demo token required');
+      }
 
       if (!res.ok) {
         const issue = data.details?.[0]?.issue ?? data.name ?? '';
@@ -256,7 +370,7 @@ export function DemoControlsPanel({
         tone: 'negative',
         text:
           err instanceof Error
-            ? `PayPal capture request failed: ${err.message}. Try again.`
+            ? `PayPal capture request failed: ${err.message}`
             : 'PayPal sandbox did not respond in time. Try capturing again.',
       });
     } finally {
@@ -341,9 +455,8 @@ export function DemoControlsPanel({
                     </span>
                   </div>
                   <p className="text-xs leading-relaxed text-fg-3">
-                    Staging controls only. Dropping webhooks makes{' '}
-                    <code className="font-mono text-fg-2">/api/webhook</code> return HTTP 200 without
-                    updating <code className="font-mono text-fg-2">local_orders</code>.
+                    Stage a drifting order in one click without a PayPal buyer login, or reset the
+                    shared demo ledger at any time.
                   </p>
                 </div>
                 <button
@@ -360,7 +473,41 @@ export function DemoControlsPanel({
               </div>
 
               <div className="mt-3 space-y-3">
-                {/* TODO(demo-controls): Make "Load a drifting order" the first item here once implemented; do not build it yet. */}
+                {/* Primary 1-click judge flow: Load a drifting order + Reset demo */}
+                <div className="space-y-2.5 rounded-[var(--radius-card)] border border-ai/30 bg-ai-soft/60 p-3.5">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-fg">
+                      Instant judge flow (no PayPal login needed)
+                    </p>
+                    <p className="text-xs leading-relaxed text-fg-2">
+                      Resets a pre-captured PayPal sandbox order back to{' '}
+                      <code className="font-mono text-fg">CREATED</code> locally so you can click{' '}
+                      <strong className="font-semibold text-fg">Investigate</strong> and{' '}
+                      <strong className="font-semibold text-fg">Approve fix</strong> right away.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      ref={loadDriftButtonRef}
+                      variant="primary"
+                      size="sm"
+                      disabled={loadingDriftOrder || resettingDemo}
+                      onClick={handleLoadDriftingOrder}
+                    >
+                      <Sparkles className="size-3.5" strokeWidth={1.75} aria-hidden />
+                      {loadingDriftOrder ? 'Loading drifting order…' : 'Load a drifting order'}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={resettingDemo || loadingDriftOrder}
+                      onClick={handleResetDemo}
+                    >
+                      <RotateCcw className="size-3.5" strokeWidth={1.75} aria-hidden />
+                      {resettingDemo ? 'Resetting…' : 'Reset demo'}
+                    </Button>
+                  </div>
+                </div>
 
                 {/* Fault injection toggle */}
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-card)] border border-[var(--glass-border)] bg-[var(--glass-inner-bg)] p-3">
@@ -383,7 +530,6 @@ export function DemoControlsPanel({
                       {dropWebhooks ? 'Dropping' : 'Normal'}
                     </Badge>
                     <button
-                      ref={faultSwitchRef}
                       type="button"
                       role="switch"
                       aria-checked={dropWebhooks}
@@ -405,86 +551,127 @@ export function DemoControlsPanel({
                   </div>
                 </div>
 
-                {/* Step 1: Create sandbox order */}
-                <div className="space-y-2 rounded-[var(--radius-card)] border border-[var(--glass-border)] bg-[var(--glass-inner-bg)] p-3">
-                  <p className="text-xs font-semibold text-fg-2">1. Create sandbox order</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label htmlFor="demo-order-amount" className="text-xs font-medium text-fg-2">
-                      USD
-                    </label>
-                    <input
-                      id="demo-order-amount"
-                      type="text"
-                      inputMode="decimal"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="h-9 w-24 rounded-[var(--radius-input)] border border-line-strong bg-[var(--glass-input-bg)] px-3 font-mono text-sm text-fg tabular-nums focus:border-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
+                {/* Collapsed Advanced demo drawer */}
+                <div className="rounded-[var(--radius-card)] border border-[var(--glass-border)] bg-[var(--glass-inner-bg)]">
+                  <button
+                    type="button"
+                    aria-expanded={advancedOpen}
+                    onClick={() => setAdvancedOpen((prev) => !prev)}
+                    className="flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2.5 text-left text-xs font-semibold text-fg-2 transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
+                  >
+                    <span>Advanced demo (create, approve &amp; capture new sandbox order)</span>
+                    <ChevronDown
+                      className={`size-4 shrink-0 transition-transform ${
+                        advancedOpen ? 'rotate-180' : ''
+                      }`}
+                      strokeWidth={1.5}
+                      aria-hidden
                     />
-                    <Button
-                      variant="tertiary"
-                      size="sm"
-                      disabled={creatingOrder}
-                      onClick={handleCreateOrder}
-                    >
-                      {creatingOrder ? 'Creating order…' : 'Create sandbox order'}
-                    </Button>
-                  </div>
+                  </button>
 
-                  {createdOrder && (
-                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-[var(--glass-input-bg)] px-3 py-2 text-xs">
-                      <span className="font-medium text-fg tabular-nums">
-                        Order <code className="font-mono text-paypal">{createdOrder.order_id}</code> ($
-                        {createdOrder.amount})
-                      </span>
-                      {createdOrder.approve_link ? (
-                        <a
-                          href={createdOrder.approve_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 font-semibold text-ai hover:text-fg hover:underline"
+                  {advancedOpen && (
+                    <div className="space-y-3 border-t border-[var(--glass-border)] p-3">
+                      {/* Step 1: Create sandbox order */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-fg-2">1. Create sandbox order</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label htmlFor="demo-order-amount" className="text-xs font-medium text-fg-2">
+                            USD
+                          </label>
+                          <input
+                            id="demo-order-amount"
+                            type="text"
+                            inputMode="decimal"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            className="h-9 w-24 rounded-[var(--radius-input)] border border-line-strong bg-[var(--glass-input-bg)] px-3 font-mono text-sm text-fg tabular-nums focus:border-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
+                          />
+                          <Button
+                            variant="tertiary"
+                            size="sm"
+                            disabled={creatingOrder}
+                            onClick={handleCreateOrder}
+                          >
+                            {creatingOrder ? 'Creating order…' : 'Create sandbox order'}
+                          </Button>
+                        </div>
+
+                        {createdOrder && (
+                          <div className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-input)] border border-[var(--glass-border)] bg-[var(--glass-input-bg)] px-3 py-2 text-xs">
+                            <span className="font-medium text-fg tabular-nums">
+                              Order <code className="font-mono text-paypal">{createdOrder.order_id}</code> ($
+                              {createdOrder.amount})
+                            </span>
+                            {createdOrder.approve_link ? (
+                              <a
+                                href={createdOrder.approve_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 font-semibold text-ai hover:text-fg hover:underline"
+                              >
+                                Approve in PayPal sandbox
+                                <ExternalLink className="size-3.5" strokeWidth={1.5} aria-hidden />
+                              </a>
+                            ) : (
+                              <span className="text-fg-3">No approve link returned</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Step 2: Capture sandbox order */}
+                      <div className="space-y-2 border-t border-[var(--glass-border)] pt-2.5">
+                        <p className="text-xs font-semibold text-fg-2">2. Capture sandbox order</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label htmlFor="demo-capture-order-id" className="sr-only">
+                            Order ID
+                          </label>
+                          <input
+                            id="demo-capture-order-id"
+                            type="text"
+                            list="unpaid-local-orders"
+                            placeholder="e.g. 9S418248XP100792M"
+                            value={captureOrderId}
+                            onChange={(e) => setCaptureOrderId(e.target.value)}
+                            className="h-9 min-w-[170px] flex-1 rounded-[var(--radius-input)] border border-line-strong bg-[var(--glass-input-bg)] px-3 font-mono text-sm text-fg focus:border-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
+                          />
+                          <datalist id="unpaid-local-orders">
+                            {unpaidOrders.map((o) => (
+                              <option key={o.order_id} value={o.order_id}>
+                                {o.order_id} (${o.amount.toFixed(2)} · {o.local_status})
+                              </option>
+                            ))}
+                          </datalist>
+                          <Button
+                            variant="tertiary"
+                            size="sm"
+                            disabled={capturing || !captureOrderId.trim()}
+                            onClick={handleCaptureOrder}
+                          >
+                            {capturing ? 'Capturing…' : 'Capture order'}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Optional Demo Token (x-demo-token) when DEMO_TOKEN is configured on server */}
+                      <div className="space-y-1.5 border-t border-[var(--glass-border)] pt-2.5">
+                        <label
+                          htmlFor="demo-access-token"
+                          className="block text-xs font-semibold text-fg-2"
                         >
-                          Approve in PayPal sandbox
-                          <ExternalLink className="size-3.5" strokeWidth={1.5} aria-hidden />
-                        </a>
-                      ) : (
-                        <span className="text-fg-3">No approve link returned</span>
-                      )}
+                          Demo token (optional, sent as <code className="font-mono">x-demo-token</code>)
+                        </label>
+                        <input
+                          id="demo-access-token"
+                          type="password"
+                          placeholder="Leave blank unless DEMO_TOKEN is set on server"
+                          value={demoToken}
+                          onChange={(e) => handleTokenChange(e.target.value)}
+                          className="h-8 w-full rounded-[var(--radius-input)] border border-line-strong bg-[var(--glass-input-bg)] px-3 font-mono text-xs text-fg focus:border-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
+                        />
+                      </div>
                     </div>
                   )}
-                </div>
-
-                {/* Step 2: Capture sandbox order */}
-                <div className="space-y-2 rounded-[var(--radius-card)] border border-[var(--glass-border)] bg-[var(--glass-inner-bg)] p-3">
-                  <p className="text-xs font-semibold text-fg-2">2. Capture sandbox order</p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label htmlFor="demo-capture-order-id" className="sr-only">
-                      Order ID
-                    </label>
-                    <input
-                      id="demo-capture-order-id"
-                      type="text"
-                      list="unpaid-local-orders"
-                      placeholder="e.g. 12N95587M6071792S"
-                      value={captureOrderId}
-                      onChange={(e) => setCaptureOrderId(e.target.value)}
-                      className="h-9 min-w-[170px] flex-1 rounded-[var(--radius-input)] border border-line-strong bg-[var(--glass-input-bg)] px-3 font-mono text-sm text-fg focus:border-accent-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-ink"
-                    />
-                    <datalist id="unpaid-local-orders">
-                      {unpaidOrders.map((o) => (
-                        <option key={o.order_id} value={o.order_id}>
-                          {o.order_id} (${o.amount.toFixed(2)} · {o.local_status})
-                        </option>
-                      ))}
-                    </datalist>
-                    <Button
-                      variant="tertiary"
-                      size="sm"
-                      disabled={capturing || !captureOrderId.trim()}
-                      onClick={handleCaptureOrder}
-                    >
-                      {capturing ? 'Capturing…' : 'Capture order'}
-                    </Button>
-                  </div>
                 </div>
 
                 {slowNotice && (
@@ -506,7 +693,7 @@ export function DemoControlsPanel({
                         {statusMessage.tone === 'positive'
                           ? 'Ready'
                           : statusMessage.tone === 'warning'
-                            ? 'Note'
+                            ? 'Drifting'
                             : statusMessage.tone === 'negative'
                               ? 'Error'
                               : 'Created'}

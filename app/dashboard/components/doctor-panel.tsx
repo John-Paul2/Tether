@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { GripHorizontal } from 'lucide-react';
 import type { TetherDriftRow, TetherLocalOrderRow } from '@/lib/tether-data';
+import { withDemoTokenHeaders } from './demo-token';
 import {
   AlertIcon,
   ArrowRightIcon,
@@ -190,8 +191,10 @@ export function DoctorPanel({
         }));
 
   const [loadingDrift, setLoadingDrift] = useState(false);
+  const [warmingUpNotice, setWarmingUpNotice] = useState<string | null>(null);
   const [paypalSlowNotice, setPaypalSlowNotice] = useState<string | null>(null);
   const [driftError, setDriftError] = useState<string | null>(null);
+  const hasCompletedFirstDriftRef = useRef(false);
 
   const [investigatingOrderId, setInvestigatingOrderId] = useState<string | null>(null);
   const [isInvestigating, setIsInvestigating] = useState(false);
@@ -208,40 +211,65 @@ export function DoctorPanel({
   const [healError, setHealError] = useState<string | null>(null);
   const [healOutcome, setHealOutcome] = useState<HealOutcome | null>(null);
 
-  const fetchDrift = useCallback(async () => {
-    setLoadingDrift(true);
-    setDriftError(null);
-    setPaypalSlowNotice(null);
-
-    const slowTimer = setTimeout(() => {
-      setPaypalSlowNotice(
-        'PayPal sandbox is responding slowly while checking live order statuses. Still waiting…',
-      );
-    }, 3500);
-
-    try {
-      const res = await fetch('/api/drift', { cache: 'no-store' });
-      const data = (await res.json()) as DriftApiItem[] | { error?: string };
-      if (!res.ok || !Array.isArray(data)) {
-        const errMsg =
-          !Array.isArray(data) && data?.error
-            ? data.error
-            : `PayPal drift check failed with status ${res.status}`;
-        throw new Error(errMsg);
+  const fetchDrift = useCallback(
+    async (options?: { isInitialCheck?: boolean }) => {
+      const isFirst = !hasCompletedFirstDriftRef.current;
+      if (!options?.isInitialCheck) {
+        setLoadingDrift(true);
       }
-      setManualDrift({ source: initialDrift, items: data });
-    } catch (err) {
-      setDriftError(
-        err instanceof Error
-          ? `Could not verify live order status with PayPal: ${err.message}. Check your connection or sandbox credentials and click Retry.`
-          : 'PayPal sandbox timed out while checking for drift. Click Retry to check again.',
-      );
-    } finally {
-      clearTimeout(slowTimer);
+      setDriftError(null);
       setPaypalSlowNotice(null);
-      setLoadingDrift(false);
+      setWarmingUpNotice(null);
+
+      const slowTimer = setTimeout(
+        () => {
+          if (isFirst) {
+            setWarmingUpNotice('Waking up the demo, this can take about a minute');
+          } else {
+            setPaypalSlowNotice(
+              'PayPal sandbox is responding slowly while checking live order statuses. Still waiting…',
+            );
+          }
+        },
+        isFirst ? 3000 : 3500,
+      );
+
+      try {
+        const res = await fetch('/api/drift', { cache: 'no-store' });
+        const data = (await res.json()) as DriftApiItem[] | { error?: string };
+        if (!res.ok || !Array.isArray(data)) {
+          const errMsg =
+            !Array.isArray(data) && data?.error
+              ? data.error
+              : `PayPal drift check failed with status ${res.status}`;
+          throw new Error(errMsg);
+        }
+        hasCompletedFirstDriftRef.current = true;
+        setManualDrift({ source: initialDrift, items: data });
+      } catch (err) {
+        hasCompletedFirstDriftRef.current = true;
+        if (!options?.isInitialCheck) {
+          setDriftError(
+            err instanceof Error
+              ? `Could not verify live order status with PayPal: ${err.message}. Check your connection or sandbox credentials and click Retry.`
+              : 'PayPal sandbox timed out while checking for drift. Click Retry to check again.',
+          );
+        }
+      } finally {
+        clearTimeout(slowTimer);
+        setWarmingUpNotice(null);
+        setPaypalSlowNotice(null);
+        setLoadingDrift(false);
+      }
+    },
+    [initialDrift],
+  );
+
+  useEffect(() => {
+    if (!hasCompletedFirstDriftRef.current) {
+      void fetchDrift({ isInitialCheck: true });
     }
-  }, [initialDrift]);
+  }, [fetchDrift]);
 
   const handleInvestigate = async (orderId?: string) => {
     const targetOrder = orderId?.trim() || undefined;
@@ -274,8 +302,21 @@ export function DoctorPanel({
         signal: controller.signal,
       });
 
-      if (!res.ok || !res.body) {
-        throw new Error(`Doctor agent endpoint returned HTTP ${res.status}`);
+      if (!res.ok) {
+        let friendlyMessage = `Doctor agent endpoint returned HTTP ${res.status}`;
+        try {
+          const errJson = (await res.json()) as { error?: string };
+          if (errJson?.error) {
+            friendlyMessage = errJson.error;
+          }
+        } catch {
+          // Ignore non-JSON error body
+        }
+        throw new Error(friendlyMessage);
+      }
+
+      if (!res.body) {
+        throw new Error('Doctor agent returned an empty stream');
       }
 
       const reader = res.body.getReader();
@@ -296,6 +337,9 @@ export function DoctorPanel({
           const dataLines: string[] = [];
 
           for (const line of lines) {
+            if (line.startsWith(':')) {
+              continue;
+            }
             if (line.startsWith('event:')) {
               eventName = line.slice(6).trim();
             } else if (line.startsWith('data:')) {
@@ -330,7 +374,7 @@ export function DoctorPanel({
       } else {
         setAgentError(
           err instanceof Error
-            ? `Investigation interrupted: ${err.message}. Click Investigate to run a fresh check.`
+            ? err.message
             : 'The model timed out or returned an unexpected error. Click Investigate to retry.',
         );
       }
@@ -365,7 +409,7 @@ export function DoctorPanel({
     try {
       const res = await fetch('/api/agent/approve', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: withDemoTokenHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ orderId }),
       });
 
@@ -376,13 +420,15 @@ export function DoctorPanel({
         action?: string;
         result?: string;
         reason?: string;
+        error?: string;
         seconds_to_fixed?: number | null;
         log_id?: number;
       };
 
       if (!res.ok || !data.healed) {
         setHealError(
-          data.reason ??
+          data.error ??
+            data.reason ??
             `Heal did not complete (status ${res.status}: ${data.result ?? 'refused'}). Make sure "Simulate dropped webhooks" is turned OFF and try again.`,
         );
         onHealedOrUpdated();
@@ -557,7 +603,21 @@ export function DoctorPanel({
 
       {/* Scrollable Middle: Drift list, SSE Trace steps, Diagnosis, Safety checks, Evidence, Result */}
       <div className="tether-doctor-scroll flex-1 min-h-0 space-y-4 overflow-y-auto overscroll-contain p-4">
-        {loadingDrift && !paypalSlowNotice && (
+        {warmingUpNotice && (
+          <div
+            role="status"
+            data-testid="warming-up-notice"
+            className="flex items-center gap-2.5 rounded-[var(--radius-input)] border border-ai/30 bg-ai-soft px-3.5 py-2.5 text-xs font-medium text-ai"
+          >
+            <span
+              className="size-3.5 shrink-0 animate-spin rounded-full border-[1.5px] border-ai/25 border-t-ai"
+              aria-hidden
+            />
+            <span>{warmingUpNotice}</span>
+          </div>
+        )}
+
+        {loadingDrift && !paypalSlowNotice && !warmingUpNotice && (
           <div
             role="status"
             className="flex items-center gap-2 rounded-[var(--radius-input)] border border-ai/25 bg-ai-soft px-3 py-2 text-xs font-medium text-ai"

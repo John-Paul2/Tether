@@ -5,8 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
     "lint": "eslint"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "ag-grid-community": "36.2.0",
